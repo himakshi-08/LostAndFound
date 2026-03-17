@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0f112e;
+    color: #dcdcfc;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-image: 
+      radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(220, 220, 252, 0.05) 0%, transparent 50%);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(30, 36, 74, 0.4);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  .glass-card:hover {
+    background: rgba(30, 36, 74, 0.6);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-4px);
+  }
+
+  .btn-primary {
+    padding: 0.5rem 1.5rem;
+    background-color: #1e90ff;
+    color: white;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 15px -3px rgba(30, 144, 255, 0.2);
+  }
+  .btn-primary:hover {
+    background-color: #1c86ee;
+  }
+  .btn-primary:active {
+    transform: scale(0.95);
+  }
+
+  .btn-secondary {
+    padding: 0.5rem 1.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #e6e6fa;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    color: #e6e6fa;
+    transition: all 0.3s ease;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: #1e90ff;
+    box-shadow: 0 0 0 2px rgba(30, 144, 255, 0.5);
+  }
+}
