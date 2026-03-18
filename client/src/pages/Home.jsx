@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Search, Zap, Shield, Globe, MousePointer2 } from 'lucide-react';
+import { ArrowRight, Search, Zap, Shield, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const FeatureCard = ({ icon: Icon, title, desc }) => (
@@ -24,6 +24,10 @@ const Step = ({ number, title, desc }) => (
 );
 
 const Home = () => {
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, []);
+
     return (
         <div className="pt-20 pb-20">
             {/* Hero Section */}

@@ -26,7 +26,7 @@ const Navbar = () => {
                             {[
                                 { name: 'Dashboard', path: '/dashboard' },
                                 { name: 'Matches', path: '/matches' },
-                                { name: 'Messages', path: '/messages' },
+                                { name: 'Messages', path: '/activity' },
                             ].map((item) => (
                                 <Link
                                     key={item.name}
@@ -51,7 +51,7 @@ const Navbar = () => {
                         </>
                     ) : (
                         <>
-                            <Link to="/" className="px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest text-lavender/70 hover:text-white hover:bg-white/10 transition-all">
+                            <Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest text-lavender/70 hover:text-white hover:bg-white/10 transition-all">
                                 Home
                             </Link>
                             <a href="/#how-it-works" className="px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest text-lavender/70 hover:text-white hover:bg-white/10 transition-all">

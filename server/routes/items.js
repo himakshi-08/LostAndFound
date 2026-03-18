@@ -35,6 +35,16 @@ router.post('/report', auth, async (req, res) => {
     }
 });
 
+// Get All Active Items (for Activity Feed)
+router.get('/all', auth, async (req, res) => {
+    try {
+        const items = await Item.find({ status: 'active' }).sort({ createdAt: -1 }).populate('user', 'name');
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // Get My Items
 router.get('/my-items', auth, async (req, res) => {
     try {
