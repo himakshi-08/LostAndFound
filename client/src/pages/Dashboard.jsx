@@ -126,11 +126,11 @@ const Dashboard = () => {
                     to="/my-items"
                 />
                 <ActionCard 
-                    title="All Matches" 
-                    desc="Check AI-suggested matches for your items."
+                    title="Activity Feed" 
+                    desc="See all campus lost & found reports and scan for matches."
                     icon={Bell}
                     color="bg-electric-blue/20 text-electric-blue"
-                    to="/matches"
+                    to="/activity"
                 />
             </div>
 

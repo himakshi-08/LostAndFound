@@ -72,9 +72,9 @@ router.get('/:id/matches', auth, async (req, res) => {
 });
 
 // Delete item
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
     try {
-        const item = await Item.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+        const item = await Item.findOneAndDelete({ _id: req.params.id, user: req.user });
         if (!item) return res.status(404).json({ message: 'Item not found or unauthorized' });
         res.json({ message: 'Item deleted successfully' });
     } catch (err) {

@@ -121,6 +121,13 @@ const ReportItem = ({ type }) => {
         }
     };
 
+    const addQuestion = () => {
+        setFormData(prev => ({
+            ...prev,
+            verificationQuestions: [...prev.verificationQuestions, { question: '', answer: '' }]
+        }));
+    };
+
     return (
         <div className="pt-24 px-6 max-w-4xl mx-auto pb-20">
             {/* Multi-step progress indicator */}

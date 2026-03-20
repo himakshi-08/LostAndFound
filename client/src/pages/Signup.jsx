@@ -19,7 +19,7 @@ const Signup = () => {
         setLoading(true);
         try {
             await signup(formData);
-            navigate('/');
+            navigate('/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Signup failed. Please check your details.');
         } finally {

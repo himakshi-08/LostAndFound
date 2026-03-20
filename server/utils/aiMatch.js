@@ -68,9 +68,9 @@ const findMatches = (newItem, existingItems) => {
         };
     });
 
-    // Return matches above 25% threshold, sorted by score
+    // Return matches above 15% threshold, sorted by score
     return matches
-        .filter(m => m.score >= 25)
+        .filter(m => m.score >= 15)
         .sort((a, b) => b.score - a.score);
 };
 

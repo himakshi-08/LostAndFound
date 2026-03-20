@@ -17,7 +17,7 @@ const Login = () => {
         setLoading(true);
         try {
             await login(formData.email, formData.password);
-            navigate('/');
+            navigate('/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
         } finally {

@@ -11,6 +11,17 @@ import Matches from './pages/Matches';
 import MyItems from './pages/MyItems';
 import Activity from './pages/Activity';
 
+const NotFound = () => (
+    <div className="pt-32 px-6 text-center">
+        <div className="glass-card max-w-md mx-auto p-16">
+            <div className="text-6xl mb-6">🔍</div>
+            <h1 className="text-4xl font-black mb-3">404</h1>
+            <p className="text-lavender/50 mb-8">Page not found. It might be lost too!</p>
+            <a href="/" className="btn-primary px-8 py-3 text-xs font-black uppercase tracking-widest">Go Home</a>
+        </div>
+    </div>
+);
+
 const ProtectedRoute = ({ children }) => {
     const { token, loading } = useAuth();
     if (loading) return null;
@@ -39,6 +50,7 @@ const App = () => {
                         <Route path="/matches" element={<ProtectedRoute><Matches /></ProtectedRoute>} />
                         <Route path="/my-items" element={<ProtectedRoute><MyItems /></ProtectedRoute>} />
                         <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
+                        <Route path="*" element={<NotFound />} />
                     </Routes>
                 </div>
             </Router>
