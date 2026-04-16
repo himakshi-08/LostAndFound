@@ -55,14 +55,18 @@ const ItemMiniCard = ({ item }) => (
 const Dashboard = () => {
     const { user } = useAuth();
     const [recentItems, setRecentItems] = useState([]);
-    const [matches, setMatches] = useState([]);
+    const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
+            if (!user) return;
             try {
+                const token = localStorage.getItem('token');
+                const config = { headers: { 'x-auth-token': token } };
+                
                 const [itemsRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/items/my-items')
+                    axios.get('http://localhost:5000/api/items/my-items', config)
                 ]);
                 setRecentItems(itemsRes.data.slice(0, 4));
             } catch (err) {
@@ -71,8 +75,24 @@ const Dashboard = () => {
                 setLoading(false);
             }
         };
+
+        const fetchNotifications = async () => {
+            if (!user) return;
+            try {
+                const token = localStorage.getItem('token');
+                const config = { headers: { 'x-auth-token': token } };
+                const res = await axios.get('http://localhost:5000/api/items/notifications', config);
+                setNotifications(res.data.notifications || []);
+            } catch (err) {
+                console.error('Error fetching notifications:', err);
+            }
+        };
+
         fetchData();
-    }, []);
+        fetchNotifications();
+        const poll = setInterval(fetchNotifications, 10000);
+        return () => clearInterval(poll);
+    }, [user]);
 
     return (
         <div className="pt-24 px-6 max-w-7xl mx-auto pb-20">
@@ -182,12 +202,28 @@ const Dashboard = () => {
                         </div>
                         <h3 className="font-bold mb-2">Smart Matching Active</h3>
                         <p className="text-xs text-lavender/40 leading-relaxed mb-6">
-                            Our AI is scanning new reports against your lost items every 5 seconds. We'll ping you here as soon as a match is found!
+                            Our AI is scanning your reports and alerting you when a new potential match appears. The dashboard will update automatically every 10 seconds.
                         </p>
-                        <div className="flex items-center space-x-2">
-                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                             <span className="text-[10px] font-bold uppercase tracking-widest text-green-500/80">Scanning for matches...</span>
-                        </div>
+                        {notifications.length > 0 ? (
+                            <div className="space-y-4">
+                                <div className="rounded-3xl bg-green-500/10 border border-green-500/20 p-4">
+                                    <p className="text-[10px] uppercase tracking-widest font-bold text-green-300 mb-2">New Match Alert</p>
+                                    <p className="text-sm text-white font-bold">{notifications.length} item{notifications.length > 1 ? 's' : ''} have potential matches.</p>
+                                </div>
+                                {notifications.slice(0, 2).map((notification, index) => (
+                                    <div key={index} className="rounded-3xl bg-white/5 border border-white/10 p-4">
+                                        <p className="text-[11px] text-lavender/40 uppercase tracking-widest mb-2">{notification.item.type === 'lost' ? 'Lost Item' : 'Found Item'}</p>
+                                        <p className="font-semibold text-white text-sm line-clamp-1">{notification.item.title}</p>
+                                        <p className="text-[10px] text-lavender/40">{notification.totalMatches} possible match{notification.totalMatches > 1 ? 'es' : ''}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-green-500/80">No matched alerts yet</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

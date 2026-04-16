@@ -33,6 +33,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(res.data.user));
     };
 
+    const updateProfile = async (profileData) => {
+        const res = await axios.put('http://localhost:5000/api/auth/profile', profileData);
+        setUser(res.data);
+        localStorage.setItem('user', JSON.stringify(res.data));
+        return res.data;
+    };
+
     const logout = () => {
         setToken(null);
         setUser(null);
@@ -42,7 +49,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, signup, updateProfile, logout }}>
             {children}
         </AuthContext.Provider>
     );

@@ -9,97 +9,170 @@ const MatchCard = ({ match, newItem }) => {
     const isHighMatch = score >= 70;
     const [claimed, setClaimed] = useState(false);
     const [claiming, setClaiming] = useState(false);
+    const [showVerify, setShowVerify] = useState(false);
+    const [answers, setAnswers] = useState(item.verificationQuestions?.map(() => '') || []);
+    const [verifying, setVerifying] = useState(false);
+    const [error, setError] = useState('');
 
     const handleClaim = async () => {
-        // Mark interest — in a real app, notify the finder
+        if (item.type === 'found' && item.verificationQuestions?.length > 0) {
+            setShowVerify(true);
+            return;
+        }
+
         setClaiming(true);
         try {
-            // Send a claim notification (basic for now)
             await axios.post(`http://localhost:5000/api/items/${item._id}/claim`, {
                 claimerItemId: newItem._id
             });
-        } catch (err) {
-            // Even if 404 (route not yet implemented), show success UI
-        } finally {
             setClaimed(true);
+        } catch (err) {
+            console.error(err);
+        } finally {
             setClaiming(false);
         }
     };
 
+    const handleVerify = async (e) => {
+        e.preventDefault();
+        setVerifying(true);
+        setError('');
+        try {
+            const res = await axios.post(`http://localhost:5000/api/items/${item._id}/verify`, { answers });
+            if (res.data.success) {
+                setClaimed(true);
+                setShowVerify(false);
+            } else {
+                setError(res.data.message);
+            }
+        } catch (err) {
+            setError('Verification failed. Please try again.');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={`glass-card overflow-hidden ${isHighMatch ? 'border-green-500/30 ring-1 ring-green-500/20' : ''}`}
-        >
-            {isHighMatch && (
-                <div className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest text-center flex items-center justify-center space-x-1">
-                    <Star size={10} />
-                    <span>High Confidence Match</span>
+        <>
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`glass-card overflow-hidden h-full flex flex-col ${isHighMatch ? 'border-green-500/30 ring-1 ring-green-500/20' : ''}`}
+            >
+                {isHighMatch && (
+                    <div className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest text-center flex items-center justify-center space-x-1">
+                        <Star size={10} />
+                        <span>High Confidence Match</span>
+                    </div>
+                )}
+
+                {/* Image */}
+                <div className="h-40 relative overflow-hidden bg-white/5">
+                    {item.images?.[0] ? (
+                        <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-5xl">
+                            {item.category === 'Electronics' ? '🎧' :
+                             item.category === 'ID Cards' ? '🪪' :
+                             item.category === 'Wallets & Purses' ? '👜' :
+                             item.category === 'Water Bottles' ? '💧' :
+                             item.category === 'Books & Stationery' ? '📚' :
+                             item.category === 'Keys' ? '🔑' : '📦'}
+                        </div>
+                    )}
+                    <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                        item.type === 'found' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                    }`}>
+                        {item.type} Item
+                    </div>
+                    <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-black ${
+                        isHighMatch ? 'bg-green-500 text-white' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    }`}>
+                        {Math.round(score)}% match
+                    </div>
+                </div>
+
+                <div className="p-6 flex flex-col flex-1">
+                    <h3 className="text-lg font-black mb-2 tracking-tight">{item.title}</h3>
+                    <p className="text-lavender/50 text-xs mb-4 leading-relaxed line-clamp-2">{item.description}</p>
+
+                    <div className="flex gap-4 text-[10px] text-lavender/40 font-bold uppercase tracking-widest mb-5">
+                        <span className="flex items-center"><MapPin size={11} className="mr-1 text-electric-blue" />{item.location}</span>
+                        <span className="flex items-center"><Calendar size={11} className="mr-1 text-electric-blue" />{new Date(item.date).toLocaleDateString()}</span>
+                    </div>
+
+                    <div className="mt-auto">
+                        {/* AI Explanation */}
+                        <div className="bg-white/[0.03] rounded-xl p-3 mb-5 text-[10px] text-lavender/40 space-y-1">
+                            <div className="font-black text-lavender/60 uppercase tracking-widest mb-2">Why AI matched this:</div>
+                            <div>📝 Text similarity: <span className="text-white">{match.aiExplanation?.descriptionSimilarity ?? Math.round(score * 0.4)}%</span></div>
+                            <div>🔤 Title fuzzy match: <span className="text-white">{match.aiExplanation?.fuzzyMatch ?? Math.round(score * 0.2)}%</span></div>
+                            <div>🗺️ Location match: <span className="text-white">{match.aiExplanation?.locationSimilarity ?? Math.round(score * 0.2)}%</span></div>
+                        </div>
+
+                        {claimed ? (
+                            <div className="w-full py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center space-x-2">
+                                <CheckCircle size={14} />
+                                <span>Verification Successful! Check Activity</span>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleClaim}
+                                disabled={claiming}
+                                className="w-full btn-primary py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center space-x-2 group"
+                            >
+                                <CheckCircle size={14} />
+                                <span>{claiming ? 'Submitting...' : item.type === 'found' ? 'Authenticate & Claim' : 'Yes, this is mine!'}</span>
+                                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Verification Modal */}
+            {showVerify && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-indigo-950/80 backdrop-blur-md">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="glass-card w-full max-w-md p-8 relative"
+                    >
+                        <h2 className="text-2xl font-black mb-2 tracking-tight italic">Ownership Challenge</h2>
+                        <p className="text-lavender/40 text-xs mb-8 leading-relaxed">The finder set security questions to ensure only the true owner can claim this item.</p>
+                        
+                        <form onSubmit={handleVerify} className="space-y-6">
+                            {item.verificationQuestions.map((q, i) => (
+                                <div key={i} className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-lavender/60">{q.question}</label>
+                                    <input 
+                                        type="text" 
+                                        className="input-field py-3 text-sm" 
+                                        placeholder="Your answer..."
+                                        value={answers[i]}
+                                        onChange={(e) => {
+                                            const newAns = [...answers];
+                                            newAns[i] = e.target.value;
+                                            setAnswers(newAns);
+                                        }}
+                                        required
+                                    />
+                                </div>
+                            ))}
+                            
+                            {error && <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest bg-red-400/10 p-3 rounded-lg border border-red-400/20 text-center">{error}</p>}
+                            
+                            <div className="flex gap-3 pt-4">
+                                <button type="button" onClick={() => setShowVerify(false)} className="btn-secondary flex-1 py-3 text-[10px] font-black uppercase tracking-widest">Cancel</button>
+                                <button type="submit" disabled={verifying} className="btn-primary flex-[2] py-3 text-[10px] font-black uppercase tracking-widest">
+                                    {verifying ? 'Verifying...' : 'Verify Ownership'}
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
                 </div>
             )}
-
-            {/* Image */}
-            <div className="h-40 relative overflow-hidden bg-white/5">
-                {item.images?.[0] ? (
-                    <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-5xl">
-                        {item.category === 'Electronics' ? '🎧' :
-                         item.category === 'ID Cards' ? '🪪' :
-                         item.category === 'Wallets & Purses' ? '👜' :
-                         item.category === 'Water Bottles' ? '💧' :
-                         item.category === 'Books & Stationery' ? '📚' :
-                         item.category === 'Keys' ? '🔑' : '📦'}
-                    </div>
-                )}
-                <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                    item.type === 'found' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
-                }`}>
-                    {item.type} Item
-                </div>
-                <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-black ${
-                    isHighMatch ? 'bg-green-500 text-white' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                }`}>
-                    {Math.round(score)}% match
-                </div>
-            </div>
-
-            <div className="p-6">
-                <h3 className="text-lg font-black mb-2 tracking-tight">{item.title}</h3>
-                <p className="text-lavender/50 text-xs mb-4 leading-relaxed line-clamp-2">{item.description}</p>
-
-                <div className="flex gap-4 text-[10px] text-lavender/40 font-bold uppercase tracking-widest mb-5">
-                    <span className="flex items-center"><MapPin size={11} className="mr-1 text-electric-blue" />{item.location}</span>
-                    <span className="flex items-center"><Calendar size={11} className="mr-1 text-electric-blue" />{new Date(item.date).toLocaleDateString()}</span>
-                </div>
-
-                {/* AI Explanation */}
-                <div className="bg-white/[0.03] rounded-xl p-3 mb-5 text-[10px] text-lavender/40 space-y-1">
-                    <div className="font-black text-lavender/60 uppercase tracking-widest mb-2">Why AI matched this:</div>
-                    <div>📝 Text similarity: <span className="text-white">{match.aiExplanation?.textMatch ?? Math.round(score * 0.4)}%</span></div>
-                    <div>🔤 Title fuzzy match: <span className="text-white">{match.aiExplanation?.fuzzyMatch ?? Math.round(score * 0.2)}%</span></div>
-                    <div>🏷️ Category match: <span className={match.aiExplanation?.categoryMatch ? 'text-green-400' : 'text-red-400'}>{match.aiExplanation?.categoryMatch ? 'Yes ✓' : 'No ✗'}</span></div>
-                </div>
-
-                {claimed ? (
-                    <div className="w-full py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-black uppercase tracking-widest text-center flex items-center justify-center space-x-2">
-                        <CheckCircle size={14} />
-                        <span>Claim Submitted! Visit Activity Feed for updates.</span>
-                    </div>
-                ) : (
-                    <button
-                        onClick={handleClaim}
-                        disabled={claiming}
-                        className="w-full btn-primary py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center space-x-2 group"
-                    >
-                        <CheckCircle size={14} />
-                        <span>{claiming ? 'Submitting...' : 'Yes, this is mine!'}</span>
-                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                )}
-            </div>
-        </motion.div>
+        </>
     );
 };
 

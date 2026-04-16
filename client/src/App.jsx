@@ -10,6 +10,7 @@ import ReportItem from './pages/ReportItem';
 import Matches from './pages/Matches';
 import MyItems from './pages/MyItems';
 import Activity from './pages/Activity';
+import Profile from './pages/Profile';
 
 const NotFound = () => (
     <div className="pt-32 px-6 text-center">
@@ -50,6 +51,7 @@ const App = () => {
                         <Route path="/matches" element={<ProtectedRoute><Matches /></ProtectedRoute>} />
                         <Route path="/my-items" element={<ProtectedRoute><MyItems /></ProtectedRoute>} />
                         <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
+                        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                 </div>

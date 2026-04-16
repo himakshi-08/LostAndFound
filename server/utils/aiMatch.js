@@ -1,77 +1,118 @@
 const natural = require('natural');
-const { TfIdf, LevenshteinDistance } = natural;
+const { TfIdf, LevenshteinDistance, PorterStemmer, WordTokenizer } = natural;
 
-/**
- * Calculates similarity between a new item and existing items of the opposite type.
- * Uses a multi-layered approach: TF-IDF, Levenshtein, Category weight, and Time Decay.
- */
+const tokenizer = new WordTokenizer();
+
+const tokenizeAndStem = (text) => {
+    if (!text) return [];
+    return tokenizer.tokenize(text.toLowerCase())
+        .filter(word => word.length > 2)
+        .map(word => PorterStemmer.stem(word));
+};
+
+const calculateCosineSimilarity = (vecA, vecB) => {
+    const terms = new Set([...Object.keys(vecA), ...Object.keys(vecB)]);
+    let dotProduct = 0;
+    let magA = 0;
+    let magB = 0;
+
+    terms.forEach(term => {
+        const valA = vecA[term] || 0;
+        const valB = vecB[term] || 0;
+        dotProduct += valA * valB;
+        magA += valA * valA;
+        magB += valB * valB;
+    });
+
+    magA = Math.sqrt(magA);
+    magB = Math.sqrt(magB);
+
+    return magA === 0 || magB === 0 ? 0 : dotProduct / (magA * magB);
+};
+
+const buildTfIdfVector = (tfidf, docIndex, vocabulary) => {
+    const vector = {};
+    vocabulary.forEach(term => {
+        vector[term] = tfidf.tfidf(term, docIndex);
+    });
+    return vector;
+};
+
+const buildVocabulary = (tfidf, documentCount) => {
+    const vocabulary = new Set();
+    for (let i = 0; i < documentCount; i += 1) {
+        tfidf.listTerms(i).forEach(({ term }) => vocabulary.add(term));
+    }
+    return vocabulary;
+};
+
 const findMatches = (newItem, existingItems) => {
     if (!existingItems || existingItems.length === 0) return [];
 
-    const tfidf = new TfIdf();
-    
-    // Add all existing items as documents for TF-IDF
+    const newDescriptionText = tokenizeAndStem(`${newItem.title} ${newItem.description}`).join(' ');
+    const newLocationText = tokenizeAndStem(newItem.location).join(' ');
+
+    const descTfIdf = new TfIdf();
+    const locTfIdf = new TfIdf();
+
+    descTfIdf.addDocument(newDescriptionText);
+    locTfIdf.addDocument(newLocationText);
+
     existingItems.forEach(item => {
-        tfidf.addDocument(`${item.title} ${item.description}`.toLowerCase());
+        descTfIdf.addDocument(tokenizeAndStem(`${item.title} ${item.description}`).join(' '));
+        locTfIdf.addDocument(tokenizeAndStem(item.location).join(' '));
     });
 
+    const descriptionVocabulary = buildVocabulary(descTfIdf, existingItems.length + 1);
+    const locationVocabulary = buildVocabulary(locTfIdf, existingItems.length + 1);
+
+    const newDescVector = buildTfIdfVector(descTfIdf, 0, descriptionVocabulary);
+    const newLocVector = buildTfIdfVector(locTfIdf, 0, locationVocabulary);
+
     const matches = existingItems.map((item, index) => {
-        let score = 0;
+        const itemDescVector = buildTfIdfVector(descTfIdf, index + 1, descriptionVocabulary);
+        const itemLocVector = buildTfIdfVector(locTfIdf, index + 1, locationVocabulary);
 
-        // 1. TF-IDF Similarity (Text Depth)
-        // We calculate how significant the new item's terms are in the existing items' corpus
-        const newTerms = `${newItem.title} ${newItem.description}`.toLowerCase().split(/\W+/);
-        let tfidfScore = 0;
-        newTerms.forEach(term => {
-            tfidf.tfidfs(term, (i, measure) => {
-                if (i === index) tfidfScore += measure;
-            });
-        });
-        
-        // Normalize TF-IDF (approximate weight 40%)
-        score += Math.min(tfidfScore * 10, 40);
+        const descriptionSimilarity = calculateCosineSimilarity(newDescVector, itemDescVector);
+        const locationSimilarity = calculateCosineSimilarity(newLocVector, itemLocVector);
 
-        // 2. Levenshtein Distance (Fuzzy Keyword Matching - 20%)
-        // Handling typos in titles (e.g., "hpndphones" vs "headphones")
         const levDist = LevenshteinDistance(newItem.title.toLowerCase(), item.title.toLowerCase());
-        const maxLen = Math.max(newItem.title.length, item.title.length);
-        const levSimilarity = maxLen === 0 ? 1 : 1 - (levDist / maxLen);
-        score += (levSimilarity * 20);
+        const maxTitleLen = Math.max(newItem.title.length, item.title.length, 1);
+        const titleSimilarity = 1 - (levDist / maxTitleLen);
 
-        // 3. Category Match (Categorical Boost - 20%)
-        if (newItem.category === item.category) {
-            score += 20;
-        } else {
-            score -= 10; // Penalty for wrong category
+        const categoryMatch = newItem.category === item.category ? 1 : 0;
+
+        const d1 = new Date(newItem.date);
+        const d2 = new Date(item.date);
+        let timeDecay = 1;
+        if (!Number.isNaN(d1.getTime()) && !Number.isNaN(d2.getTime())) {
+            const hoursGap = Math.abs(d1 - d2) / (1000 * 60 * 60);
+            timeDecay = Math.exp(-hoursGap / 72);
         }
 
-        // 4. Location & Metadata (10%)
-        const locSimilarity = LevenshteinDistance(newItem.location.toLowerCase(), item.location.toLowerCase());
-        const locMaxLen = Math.max(newItem.location.length, item.location.length);
-        const locMatch = locMaxLen === 0 ? 1 : 1 - (locSimilarity / locMaxLen);
-        score += (locMatch * 10);
-
-        // 5. Time Decay (Temporal Proximity - 10%)
-        const dayDiff = Math.abs(new Date(newItem.date) - new Date(item.date)) / (1000 * 60 * 60 * 24);
-        // Exponential decay or linear drop
-        const timeFactor = Math.max(0, 1 - (dayDiff / 30)); // 0 after 30 days
-        score += (timeFactor * 10);
+        const score =
+            (descriptionSimilarity * 35) +
+            (titleSimilarity * 30) +
+            (categoryMatch * 20) +
+            (locationSimilarity * 10) +
+            (timeDecay * 5);
 
         return {
             item,
-            score: Math.max(0, Math.min(score, 100)),
+            score: Math.round(score),
             aiExplanation: {
-                textMatch: Math.round(tfidfScore * 10),
-                fuzzyMatch: Math.round(levSimilarity * 100),
-                categoryMatch: newItem.category === item.category
+                descriptionSimilarity: Math.round(descriptionSimilarity * 100),
+                fuzzyMatch: Math.round(titleSimilarity * 100),
+                locationSimilarity: Math.round(locationSimilarity * 100),
+                timeRelevance: Math.round(timeDecay * 100)
             }
         };
     });
 
-    // Return matches above 15% threshold, sorted by score
     return matches
-        .filter(m => m.score >= 15)
+        .filter(match => match.score >= 15)
         .sort((a, b) => b.score - a.score);
 };
 
 module.exports = { findMatches };
+

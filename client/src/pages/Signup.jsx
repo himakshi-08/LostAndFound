@@ -13,9 +13,21 @@ const Signup = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const allowedDomains = ['srmap.edu.in', 'srmap.ac.in', 'university.edu'];
+    const isCampusEmail = (email) => {
+        const domain = email.split('@')[1]?.toLowerCase();
+        return allowedDomains.some(d => domain === d || domain?.endsWith(`.${d}`));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (!isCampusEmail(formData.email || '')) {
+            setError('Please use an approved campus email address.');
+            return;
+        }
+
         setLoading(true);
         try {
             await signup(formData);

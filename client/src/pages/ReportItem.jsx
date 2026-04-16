@@ -111,7 +111,16 @@ const ReportItem = ({ type }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await axios.post('http://localhost:5000/api/items/report', { ...formData, type });
+            const payload = { ...formData, type };
+            if (type !== 'found') {
+                payload.verificationQuestions = [];
+            } else {
+                payload.verificationQuestions = formData.verificationQuestions
+                    .filter(q => q.question?.trim() && q.answer?.trim())
+                    .map(q => ({ question: q.question.trim(), answer: q.answer.trim() }));
+            }
+
+            const res = await axios.post('http://localhost:5000/api/items/report', payload);
             navigate('/matches', { state: { newItem: res.data.item, matches: res.data.matches } });
         } catch (err) {
             console.error(err);

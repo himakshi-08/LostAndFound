@@ -88,6 +88,8 @@ const Activity = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All Categories');
     const { user } = useAuth();
 
     useEffect(() => {
@@ -105,9 +107,18 @@ const Activity = () => {
         fetchAll();
     }, []);
 
-    const filtered = filter === 'all' ? items : items.filter(i => i.type === filter);
+    const filtered = items.filter(item => {
+        const matchesType = filter === 'all' ? true : item.type === filter;
+        const matchesCategory = selectedCategory === 'All Categories' ? true : item.category === selectedCategory;
+        const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             item.location.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesType && matchesCategory && matchesSearch;
+    });
+
     const lostCount = items.filter(i => i.type === 'lost').length;
     const foundCount = items.filter(i => i.type === 'found').length;
+    const categoriesList = ['All Categories', ...Object.keys(categoryEmoji)];
 
     return (
         <div className="pt-24 px-6 max-w-6xl mx-auto pb-20">
@@ -136,19 +147,40 @@ const Activity = () => {
                 </div>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex space-x-2 mb-8">
-                {['all', 'lost', 'found'].map(f => (
-                    <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
-                            filter === f ? 'bg-electric-blue text-white shadow-lg shadow-blue-500/30' : 'glass-card text-lavender/50 hover:text-white'
-                        }`}
+            {/* Search & Filter Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
+                <div className="md:col-span-6 relative group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-lavender/30 group-focus-within:text-electric-blue transition-colors" size={18} />
+                    <input 
+                        type="text" 
+                        placeholder="Search items, locations, or descriptions..." 
+                        className="input-field pl-12 py-3.5 text-sm"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <div className="md:col-span-3">
+                    <select 
+                        className="input-field py-3.5 text-sm appearance-none"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
                     >
-                        {f === 'all' ? 'All Reports' : f === 'lost' ? '🔴 Lost' : '🟢 Found'}
-                    </button>
-                ))}
+                        {categoriesList.map(c => <option key={c} value={c} className="bg-indigo-900">{c}</option>)}
+                    </select>
+                </div>
+                <div className="md:col-span-3 flex space-x-2">
+                    {['all', 'lost', 'found'].map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                filter === f ? 'bg-electric-blue text-white shadow-lg' : 'glass-card text-lavender/50 hover:text-white border-white/5'
+                            }`}
+                        >
+                            {f}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Items Grid */}

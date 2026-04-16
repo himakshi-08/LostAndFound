@@ -3,17 +3,27 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+const auth = (req, res, next) => {
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded.id;
+        next();
+    } catch (err) {
+        res.status(401).json({ message: 'Token is not valid' });
+    }
+};
+
 // Signup
 router.post('/signup', async (req, res) => {
     try {
         const { name, email, password, studentId, department, year, phone } = req.body;
         
-        // Validate campus email (example: @university.edu)
-        const emailDomain = email.split('@')[1];
-        const allowedDomains = ['university.edu', 'gmail.com', 'srmap.edu.in', 'srmap.ac.in'];
-        if (!emailDomain || !allowedDomains.some(domain => emailDomain.includes(domain))) {
-             // For testing allowing common domains, but in production we'd restrict further
-             // return res.status(400).json({ message: 'Please use your campus email ID.' });
+        const allowedDomains = ['srmap.edu.in', 'srmap.ac.in', 'university.edu'];
+        const emailDomain = (email || '').split('@')[1]?.toLowerCase();
+        if (!emailDomain || !allowedDomains.some(domain => emailDomain === domain || emailDomain.endsWith(`.${domain}`))) {
+            return res.status(400).json({ message: 'Please sign up using an approved campus email address.' });
         }
 
         let user = await User.findOne({ email });
@@ -41,6 +51,47 @@ router.post('/login', async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
         res.json({ token, user: { id: user._id, name: user.name, email, reputationScore: user.reputationScore } });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Get logged-in user profile
+router.get('/profile', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user).select('-password');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Update profile
+router.put('/profile', auth, async (req, res) => {
+    try {
+        const { name, studentId, department, year, phone } = req.body;
+        const user = await User.findById(req.user);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (name) user.name = name;
+        if (studentId) user.studentId = studentId;
+        if (department) user.department = department;
+        if (year) user.year = year;
+        if (phone) user.phone = phone;
+
+        await user.save();
+
+        res.json({
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            reputationScore: user.reputationScore,
+            studentId: user.studentId,
+            department: user.department,
+            year: user.year,
+            phone: user.phone
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

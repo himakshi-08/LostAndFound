@@ -1,9 +1,10 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, PlusCircle, MessageCircle, User, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
+    const navigate = useNavigate();
     const { user, logout } = useAuth();
     const location = useLocation();
 
@@ -45,7 +46,7 @@ const Navbar = () => {
                                 <User size={16} />
                                 <span className="hidden sm:inline">{user.name}</span>
                             </Link>
-                            <button onClick={logout} className="p-2.5 hover:bg-red-500/20 text-lavender/40 hover:text-red-400 rounded-full transition-all">
+                            <button onClick={() => { logout(); navigate('/'); }} className="p-2.5 hover:bg-red-500/20 text-lavender/40 hover:text-red-400 rounded-full transition-all">
                                 <LogOut size={18} />
                             </button>
                         </>

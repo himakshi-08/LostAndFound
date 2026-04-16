@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Trash2, ExternalLink, MapPin, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Package, Trash2, ExternalLink, MapPin, Calendar, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ItemCard = ({ item, onDelete }) => (
