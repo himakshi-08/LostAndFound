@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, AlertCircle, MapPin, Calendar, ArrowRight, Activity, Star } from 'lucide-react';
@@ -179,7 +179,33 @@ const MatchCard = ({ match, newItem }) => {
 const Matches = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { newItem, matches } = location.state || { newItem: null, matches: [] };
+    const [context, setContext] = useState({ newItem: null, matches: [] });
+
+    useEffect(() => {
+        if (location.state?.newItem) {
+            const saved = {
+                newItem: location.state.newItem,
+                matches: location.state.matches || []
+            };
+            setContext(saved);
+            try {
+                sessionStorage.setItem('matches-context', JSON.stringify(saved));
+            } catch (err) {
+                console.warn('Unable to persist matches context', err);
+            }
+        } else {
+            try {
+                const stored = sessionStorage.getItem('matches-context');
+                if (stored) {
+                    setContext(JSON.parse(stored));
+                }
+            } catch (err) {
+                console.warn('Unable to restore matches context', err);
+            }
+        }
+    }, [location.state]);
+
+    const { newItem, matches } = context;
 
     if (!newItem) {
         return (

@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Mail, Lock, CreditCard, GraduationCap, ArrowRight } from 'lucide-react';
+import { UserPlus, Mail, Lock, CreditCard, GraduationCap, Phone, Shield, ArrowRight } from 'lucide-react';
 
 const Signup = () => {
     const { signup } = useAuth();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        name: '', email: '', password: '', studentId: '', department: ''
+        name: '', email: '', password: '', studentId: '', department: '', year: '', phone: ''
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -75,6 +75,17 @@ const Signup = () => {
                             <div className="relative group">
                                 <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-lavender/30 group-focus-within:text-electric-blue transition-colors" size={18} />
                                 <input className="input-field pl-12" placeholder="Department" onChange={e => setFormData({...formData, department: e.target.value})} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="relative group">
+                                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-lavender/30 group-focus-within:text-electric-blue transition-colors" size={18} />
+                                <input className="input-field pl-12" placeholder="Year (e.g., 3rd)" onChange={e => setFormData({...formData, year: e.target.value})} />
+                            </div>
+                            <div className="relative group">
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-lavender/30 group-focus-within:text-electric-blue transition-colors" size={18} />
+                                <input className="input-field pl-12" placeholder="Phone Number" onChange={e => setFormData({...formData, phone: e.target.value})} />
                             </div>
                         </div>
 

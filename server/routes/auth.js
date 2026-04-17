@@ -33,7 +33,20 @@ router.post('/signup', async (req, res) => {
         await user.save();
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        res.status(201).json({ token, user: { id: user._id, name, email, reputationScore: 0 } });
+        res.status(201).json({ 
+            token, 
+            user: { 
+                id: user._id, 
+                name: user.name, 
+                email: user.email,
+                studentId: user.studentId,
+                department: user.department,
+                year: user.year,
+                phone: user.phone,
+                reputationScore: 0,
+                verified: false
+            } 
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -50,7 +63,19 @@ router.post('/login', async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        res.json({ token, user: { id: user._id, name: user.name, email, reputationScore: user.reputationScore } });
+        res.json({ 
+            token, 
+            user: { 
+                id: user._id, 
+                name: user.name, 
+                email: user.email,
+                studentId: user.studentId,
+                department: user.department,
+                year: user.year,
+                phone: user.phone,
+                reputationScore: user.reputationScore 
+            } 
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

@@ -30,9 +30,9 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const HomeRoute = () => {
-    const { token, loading } = useAuth();
+    const { loading } = useAuth();
     if (loading) return null;
-    return token ? <Navigate to="/dashboard" /> : <Home />;
+    return <Home />;
 };
 
 const App = () => {

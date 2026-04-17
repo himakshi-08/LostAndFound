@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Activity as ActivityIcon, Search, Package, CheckCircle, Clock, AlertCircle, MapPin, Tag, Calendar, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Activity as ActivityIcon, Search, Package, CheckCircle, Clock, AlertCircle, MapPin, Tag, Calendar, ArrowRight, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const statusConfig = {
@@ -28,20 +28,54 @@ const categoryEmoji = {
     'Others': '📦',
 };
 
-const ItemCard = ({ item }) => {
+const levenshteinDistance = (a, b) => {
+    const matrix = Array.from({ length: b.length + 1 }, () => []);
+    for (let i = 0; i <= b.length; i += 1) matrix[i][0] = i;
+    for (let j = 0; j <= a.length; j += 1) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i += 1) {
+        for (let j = 1; j <= a.length; j += 1) {
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + (a[j - 1] === b[i - 1] ? 0 : 1)
+            );
+        }
+    }
+
+    return matrix[b.length][a.length];
+};
+
+const fuzzyIncludes = (text, query) => {
+    if (!query) return true;
+    const normalizedText = (text || '').toLowerCase();
+    const normalizedQuery = query.toLowerCase().trim();
+    if (!normalizedQuery) return true;
+    if (normalizedText.includes(normalizedQuery)) return true;
+
+    const tokens = normalizedText.split(/\W+/).filter(Boolean);
+    const maxDistance = Math.max(1, Math.round(normalizedQuery.length * 0.34));
+
+    return tokens.some(token => {
+        const distance = levenshteinDistance(token, normalizedQuery);
+        return distance <= maxDistance;
+    });
+};
+
+const ItemCard = ({ item, onViewDetails }) => {
     const status = statusConfig[item.status] || statusConfig.active;
     const StatusIcon = status.icon;
-    const typeInfo = typeConfig[item.type] || typeConfig.lost;
     const emoji = categoryEmoji[item.category] || '📦';
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card overflow-hidden hover:bg-white/[0.04] transition-all"
+            onClick={() => onViewDetails(item)}
+            className="glass-card overflow-hidden hover:bg-white/[0.04] transition-all cursor-pointer"
         >
             {/* Image / Emoji Banner */}
-            <div className={`relative h-36 flex items-center justify-center ${item.type === 'lost' ? 'bg-red-500/5' : 'bg-green-500/5'}`}>
+            <div className={`relative h-56 flex items-center justify-center ${item.type === 'lost' ? 'bg-red-500/5' : 'bg-green-500/5'}`}>
                 {item.images && item.images.length > 0 ? (
                     <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
                 ) : (
@@ -73,6 +107,7 @@ const ItemCard = ({ item }) => {
                 <Link
                     to="/matches"
                     state={{ newItem: item, matches: [] }}
+                    onClick={(e) => e.stopPropagation()}
                     className="btn-primary py-2 w-full text-center text-[10px] font-black uppercase tracking-widest flex items-center justify-center space-x-2 group"
                 >
                     <Search size={12} />
@@ -84,13 +119,130 @@ const ItemCard = ({ item }) => {
     );
 };
 
+const ItemDetailModal = ({ item, isOpen, onClose, onScanMatches }) => {
+    if (!isOpen || !item) return null;
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={onClose}
+                className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-6"
+            >
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="glass-card max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10"
+                >
+                    <div className="sticky top-0 flex justify-end p-4 border-b border-white/5 bg-indigo-950/50 backdrop-blur-md z-10">
+                        <button
+                            onClick={onClose}
+                            className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-lavender hover:text-white"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div className="relative h-64 overflow-hidden">
+                        <img
+                            src={item.images?.[0] || 'https://images.unsplash.com/photo-1590370221379-33b6838a6a6d?w=800&q=80'}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                        />
+                        <div className={`absolute top-4 left-4 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md ${
+                            item.type === 'lost' ? 'bg-red-500/30 text-red-200 border border-red-500/50' : 'bg-green-500/30 text-green-200 border border-green-500/50'
+                        }`}>
+                            {item.type === 'lost' ? 'Lost Item' : 'Found Item'}
+                        </div>
+                    </div>
+
+                    <div className="p-8 space-y-6">
+                        <div>
+                            <h1 className="text-4xl font-black mb-2">{item.title}</h1>
+                            <p className="text-lavender/60 text-lg">
+                                <span className="text-electric-blue font-bold">{item.type === 'lost' ? 'LOST' : 'FOUND'}</span> on campus
+                            </p>
+                        </div>
+
+                        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                            <p className="text-lavender leading-relaxed text-base">{item.description}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                <div className="text-[10px] text-lavender/40 uppercase font-bold tracking-widest mb-2">Location</div>
+                                <div className="flex items-start text-sm">
+                                    <MapPin size={16} className="mr-2 text-electric-blue shrink-0 mt-0.5" />
+                                    <span className="text-lavender font-semibold">{item.location}</span>
+                                </div>
+                            </div>
+                            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                <div className="text-[10px] text-lavender/40 uppercase font-bold tracking-widest mb-2">Date</div>
+                                <div className="flex items-start text-sm">
+                                    <Calendar size={16} className="mr-2 text-electric-blue shrink-0 mt-0.5" />
+                                    <span className="text-lavender font-semibold">{new Date(item.date).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                <div className="text-[10px] text-lavender/40 uppercase font-bold tracking-widest mb-2">Category</div>
+                                <div className="flex items-start text-sm">
+                                    <Tag size={16} className="mr-2 text-electric-blue shrink-0 mt-0.5" />
+                                    <span className="text-lavender font-semibold">{item.category || 'General'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-white/5 rounded-lg p-4 border border-white/10">
+                            <span className="text-sm font-semibold text-lavender/60">Status</span>
+                            <span className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest ${
+                                item.status === 'active'
+                                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                    : item.status === 'matched'
+                                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                    : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                            }`}>
+                                {item.status || 'Active'}
+                            </span>
+                        </div>
+
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => onScanMatches(item)}
+                            className="w-full py-4 bg-gradient-to-r from-electric-blue to-blue-600 rounded-xl font-black uppercase tracking-widest text-white hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
+                        >
+                            Scan for Matches →
+                        </motion.button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+
 const Activity = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
     const { user } = useAuth();
+    const navigate = useNavigate();
+
+    const handleViewDetails = (item) => {
+        setSelectedItem(item);
+        setIsDetailOpen(true);
+    };
+
+    const handleScanMatches = (item) => {
+        navigate('/matches', { state: { newItem: item, matches: [] } });
+    };
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -110,9 +262,9 @@ const Activity = () => {
     const filtered = items.filter(item => {
         const matchesType = filter === 'all' ? true : item.type === filter;
         const matchesCategory = selectedCategory === 'All Categories' ? true : item.category === selectedCategory;
-        const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                             item.location.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = fuzzyIncludes(item.title, searchQuery) ||
+                             fuzzyIncludes(item.description, searchQuery) ||
+                             fuzzyIncludes(item.location, searchQuery);
         return matchesType && matchesCategory && matchesSearch;
     });
 
@@ -196,10 +348,16 @@ const Activity = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filtered.map((item) => (
-                        <ItemCard key={item._id} item={item} />
+                        <ItemCard key={item._id} item={item} onViewDetails={handleViewDetails} />
                     ))}
                 </div>
             )}
+            <ItemDetailModal
+                item={selectedItem}
+                isOpen={isDetailOpen}
+                onClose={() => setIsDetailOpen(false)}
+                onScanMatches={handleScanMatches}
+            />
         </div>
     );
 };

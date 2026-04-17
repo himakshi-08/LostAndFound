@@ -198,5 +198,21 @@ router.post('/:id/verify', auth, async (req, res) => {
 });
 
 // Delete item
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const item = await Item.findById(req.params.id);
+        if (!item) return res.status(404).json({ message: 'Item not found' });
+
+        // Check if user is the owner of the item
+        if (item.user.toString() !== req.user) {
+            return res.status(403).json({ message: 'Not authorized to delete this item' });
+        }
+
+        await Item.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Item deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 module.exports = router;
