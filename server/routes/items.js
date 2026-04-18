@@ -32,6 +32,9 @@ router.post('/report', auth, async (req, res) => {
             itemData.verificationQuestions = [];
         } else {
             itemData.verificationQuestions = sanitizeVerificationQuestions(itemData.verificationQuestions);
+            if (itemData.verificationQuestions.length === 0) {
+                return res.status(400).json({ message: 'At least one verification question is required for found items to ensure secure claims.' });
+            }
         }
 
         const newItem = new Item(itemData);
@@ -59,11 +62,20 @@ router.get('/all', auth, async (req, res) => {
     }
 });
 
-// Get My Items
-router.get('/my-items', auth, async (req, res) => {
+// Get claims for my found items
+router.get('/my-claims', auth, async (req, res) => {
     try {
-        const items = await Item.find({ user: req.user }).sort({ createdAt: -1 });
-        res.json(items);
+        const foundItems = await Item.find({ user: req.user, type: 'found' }).populate('claims.user', 'name email');
+        const claims = [];
+        foundItems.forEach(item => {
+            item.claims.forEach(claim => {
+                claims.push({
+                    item,
+                    claim
+                });
+            });
+        });
+        res.json({ claims });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
