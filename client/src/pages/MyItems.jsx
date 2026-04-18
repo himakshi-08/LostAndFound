@@ -17,7 +17,6 @@ const ItemCard = ({ item, onDelete, onViewDetails }) => (
             <img 
                 src={item.images?.[0] || 'https://images.unsplash.com/photo-1590370221379-33b6838a6a6d?w=800&q=80'} 
                 alt={item.title} 
-                onClick={(e) => e.stopPropagation()}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
             <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${
