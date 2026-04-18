@@ -115,7 +115,7 @@ const MatchCard = ({ match, newItem }) => {
                                 <CheckCircle size={14} />
                                 <span>Verification Successful! Check Activity</span>
                             </div>
-                        ) : (
+                        ) : newItem.type === 'lost' ? (
                             <button
                                 onClick={handleClaim}
                                 disabled={claiming}
@@ -125,6 +125,11 @@ const MatchCard = ({ match, newItem }) => {
                                 <span>{claiming ? 'Submitting...' : item.type === 'found' ? 'Authenticate & Claim' : 'Yes, this is mine!'}</span>
                                 <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                             </button>
+                        ) : (
+                            <div className="w-full py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center space-x-2">
+                                <CheckCircle size={14} />
+                                <span>Potential Owner Notified</span>
+                            </div>
                         )}
                     </div>
                 </div>

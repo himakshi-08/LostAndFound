@@ -227,7 +227,6 @@ const ItemDetailModal = ({ item, isOpen, onClose, onScanMatches }) => {
 const Activity = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
     const [selectedItem, setSelectedItem] = useState(null);
@@ -247,9 +246,10 @@ const Activity = () => {
     useEffect(() => {
         const fetchAll = async () => {
             try {
-                // Fetch all active items for activity feed
+                // Fetch all active lost items for activity feed
                 const res = await axios.get('http://localhost:5000/api/items/all');
-                setItems(res.data);
+                const lostItems = res.data.filter(item => item.type === 'lost');
+                setItems(lostItems);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -260,16 +260,14 @@ const Activity = () => {
     }, []);
 
     const filtered = items.filter(item => {
-        const matchesType = filter === 'all' ? true : item.type === filter;
         const matchesCategory = selectedCategory === 'All Categories' ? true : item.category === selectedCategory;
         const matchesSearch = fuzzyIncludes(item.title, searchQuery) ||
                              fuzzyIncludes(item.description, searchQuery) ||
                              fuzzyIncludes(item.location, searchQuery);
-        return matchesType && matchesCategory && matchesSearch;
+        return matchesCategory && matchesSearch;
     });
 
-    const lostCount = items.filter(i => i.type === 'lost').length;
-    const foundCount = items.filter(i => i.type === 'found').length;
+    const lostCount = items.length; // All items are now lost items
     const categoriesList = ['All Categories', ...Object.keys(categoryEmoji)];
 
     return (
@@ -280,11 +278,11 @@ const Activity = () => {
                     <ActivityIcon size={24} className="text-electric-blue" />
                     <h1 className="text-4xl font-black tracking-tight">Activity Feed</h1>
                 </div>
-                <p className="text-lavender/40 text-sm">All active lost and found reports across campus. Be a hero — help someone find their item!</p>
+                <p className="text-lavender/40 text-sm">Lost items that need your help to be found! Search and help reunite items with their owners.</p>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-2 gap-4 mb-10">
                 <div className="glass-card p-5 text-center">
                     <div className="text-3xl font-black text-electric-blue mb-1">{items.length}</div>
                     <div className="text-[10px] font-bold uppercase tracking-widest text-lavender/40">Total Reports</div>
@@ -292,10 +290,6 @@ const Activity = () => {
                 <div className="glass-card p-5 text-center">
                     <div className="text-3xl font-black text-red-400 mb-1">{lostCount}</div>
                     <div className="text-[10px] font-bold uppercase tracking-widest text-lavender/40">Lost Items</div>
-                </div>
-                <div className="glass-card p-5 text-center">
-                    <div className="text-3xl font-black text-green-400 mb-1">{foundCount}</div>
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-lavender/40">Found Items</div>
                 </div>
             </div>
 
@@ -319,19 +313,6 @@ const Activity = () => {
                     >
                         {categoriesList.map(c => <option key={c} value={c} className="bg-indigo-900">{c}</option>)}
                     </select>
-                </div>
-                <div className="md:col-span-3 flex space-x-2">
-                    {['all', 'lost', 'found'].map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                filter === f ? 'bg-electric-blue text-white shadow-lg' : 'glass-card text-lavender/50 hover:text-white border-white/5'
-                            }`}
-                        >
-                            {f}
-                        </button>
-                    ))}
                 </div>
             </div>
 

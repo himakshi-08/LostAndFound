@@ -52,7 +52,7 @@ router.post('/report', auth, async (req, res) => {
 // Get All Active Items (for Activity Feed)
 router.get('/all', auth, async (req, res) => {
     try {
-        const items = await Item.find({ status: 'active' }).sort({ createdAt: -1 }).populate('user', 'name');
+        const items = await Item.find({ status: 'active', type: 'lost' }).sort({ createdAt: -1 }).populate('user', 'name');
         res.json(items);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -72,11 +72,11 @@ router.get('/my-items', auth, async (req, res) => {
 // Get notification alerts for the current user
 router.get('/notifications', auth, async (req, res) => {
     try {
-        const userItems = await Item.find({ user: req.user, status: 'active' });
+        const userItems = await Item.find({ user: req.user, status: 'active', type: 'lost' });
         const notifications = [];
 
         for (const item of userItems) {
-            const oppositeType = item.type === 'lost' ? 'found' : 'lost';
+            const oppositeType = 'found';
             const potentialMatches = await Item.find({ type: oppositeType, status: 'active' });
             const matches = findMatches(item, potentialMatches);
             if (matches.length > 0) {
@@ -116,6 +116,16 @@ router.post('/:id/claim', auth, async (req, res) => {
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: 'Item not found' });
 
+        // Only found items can be claimed
+        if (item.type !== 'found') {
+            return res.status(400).json({ message: 'Only found items can be claimed.' });
+        }
+
+        // Finder cannot claim their own found item
+        if (item.user.toString() === req.user) {
+            return res.status(400).json({ message: 'You cannot claim your own found item.' });
+        }
+
         const { claimerItemId } = req.body;
         if (!claimerItemId) return res.status(400).json({ message: 'claimerItemId is required for claims.' });
 
@@ -124,8 +134,9 @@ router.post('/:id/claim', auth, async (req, res) => {
             return res.status(400).json({ message: 'Invalid claim report or unauthorized.' });
         }
 
-        if (claimerItem.type === item.type) {
-            return res.status(400).json({ message: 'Claim must be made with an opposite-type report.' });
+        // Claimer must have a lost item, not a found item
+        if (claimerItem.type !== 'lost') {
+            return res.status(400).json({ message: 'You can only claim found items with your lost item reports.' });
         }
 
         const alreadyClaimed = item.claims.find(c => c.user.toString() === req.user);
