@@ -24,7 +24,9 @@ const auth = (req, res, next) => {
     }
 };
 
-// Report Item
+// ─────────────────────────────────────────────
+// Report Item (lost or found)
+// ─────────────────────────────────────────────
 router.post('/report', auth, async (req, res) => {
     try {
         const itemData = { ...req.body, user: req.user };
@@ -40,10 +42,14 @@ router.post('/report', auth, async (req, res) => {
         const newItem = new Item(itemData);
         await newItem.save();
 
-        // Trigger AI matching
+        // Trigger AI matching — match against opposite type
         const oppositeType = newItem.type === 'lost' ? 'found' : 'lost';
-        const potentialMatches = await Item.find({ type: oppositeType, status: 'active' }).populate('user', 'name email');
-        
+        const potentialMatches = await Item.find({
+            type: oppositeType,
+            status: 'active',
+            user: { $ne: req.user }   // exclude own items
+        }).populate('user', 'name email');
+
         const matches = findMatches(newItem, potentialMatches);
 
         res.status(201).json({ item: newItem, matches });
@@ -52,27 +58,75 @@ router.post('/report', auth, async (req, res) => {
     }
 });
 
-// Get All Active Items (for Activity Feed)
+// ─────────────────────────────────────────────
+// GET /all — All active items (lost + found) for public Activity Feed
+// ─────────────────────────────────────────────
 router.get('/all', auth, async (req, res) => {
     try {
-        const items = await Item.find({ status: 'active', type: 'lost' }).sort({ createdAt: -1 }).populate('user', 'name');
+        const items = await Item.find({ status: 'active' })
+            .sort({ createdAt: -1 })
+            .populate('user', 'name');
         res.json(items);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// Get claims for my found items
+// ─────────────────────────────────────────────
+// GET /my-items — Current user's own items
+// Optional query: ?type=lost|found
+// ─────────────────────────────────────────────
+router.get('/my-items', auth, async (req, res) => {
+    try {
+        const filter = { user: req.user };
+        if (req.query.type) {
+            filter.type = req.query.type;
+        }
+        const items = await Item.find(filter).sort({ createdAt: -1 });
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// GET /my-found-items — Current user's found item reports (for claim selection)
+// ─────────────────────────────────────────────
+router.get('/my-found-items', auth, async (req, res) => {
+    try {
+        const items = await Item.find({ user: req.user, type: 'found', status: 'active' })
+            .sort({ createdAt: -1 });
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// GET /public-lost — All active lost items for Activity Feed (alias for filtering)
+// ─────────────────────────────────────────────
+router.get('/public-lost', auth, async (req, res) => {
+    try {
+        const items = await Item.find({ type: 'lost', status: 'active' })
+            .sort({ createdAt: -1 })
+            .populate('user', 'name');
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// GET /my-claims — Claims on the current user's found items
+// ─────────────────────────────────────────────
 router.get('/my-claims', auth, async (req, res) => {
     try {
-        const foundItems = await Item.find({ user: req.user, type: 'found' }).populate('claims.user', 'name email');
+        const foundItems = await Item.find({ user: req.user, type: 'found' })
+            .populate('claims.user', 'name email');
         const claims = [];
         foundItems.forEach(item => {
             item.claims.forEach(claim => {
-                claims.push({
-                    item,
-                    claim
-                });
+                claims.push({ item, claim });
             });
         });
         res.json({ claims });
@@ -81,15 +135,20 @@ router.get('/my-claims', auth, async (req, res) => {
     }
 });
 
-// Get notification alerts for the current user
+// ─────────────────────────────────────────────
+// GET /notifications — Match alerts for users with active lost items
+// ─────────────────────────────────────────────
 router.get('/notifications', auth, async (req, res) => {
     try {
         const userItems = await Item.find({ user: req.user, status: 'active', type: 'lost' });
         const notifications = [];
 
         for (const item of userItems) {
-            const oppositeType = 'found';
-            const potentialMatches = await Item.find({ type: oppositeType, status: 'active' });
+            const potentialMatches = await Item.find({
+                type: 'found',
+                status: 'active',
+                user: { $ne: req.user }
+            });
             const matches = findMatches(item, potentialMatches);
             if (matches.length > 0) {
                 notifications.push({
@@ -106,15 +165,21 @@ router.get('/notifications', auth, async (req, res) => {
     }
 });
 
-// Get Item Matches
+// ─────────────────────────────────────────────
+// GET /:id/matches — AI matches for a specific item
+// ─────────────────────────────────────────────
 router.get('/:id/matches', auth, async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: 'Item not found' });
-        
+
         const oppositeType = item.type === 'lost' ? 'found' : 'lost';
-        const potentialMatches = await Item.find({ type: oppositeType, status: 'active' }).populate('user', 'name email');
-        
+        const potentialMatches = await Item.find({
+            type: oppositeType,
+            status: 'active',
+            user: { $ne: item.user }
+        }).populate('user', 'name email');
+
         const matches = findMatches(item, potentialMatches);
         res.json(matches);
     } catch (err) {
@@ -122,33 +187,39 @@ router.get('/:id/matches', auth, async (req, res) => {
     }
 });
 
-// Claim an item
+// ─────────────────────────────────────────────
+// POST /:id/claim — Claim a found item (by the person who lost it)
+// The body must contain: claimerItemId (the claimer's own LOST item report)
+// OR: for a finder notifying about a lost item, body contains foundItemId (their OWN found report)
+// ─────────────────────────────────────────────
 router.post('/:id/claim', auth, async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: 'Item not found' });
 
-        // Only found items can be claimed
-        if (item.type !== 'found') {
-            return res.status(400).json({ message: 'Only found items can be claimed.' });
-        }
-
-        // Finder cannot claim their own found item
+        // Cannot claim your own item
         if (item.user.toString() === req.user) {
-            return res.status(400).json({ message: 'You cannot claim your own found item.' });
+            return res.status(400).json({ message: 'You cannot claim your own item.' });
         }
 
         const { claimerItemId } = req.body;
-        if (!claimerItemId) return res.status(400).json({ message: 'claimerItemId is required for claims.' });
+        if (!claimerItemId) {
+            return res.status(400).json({ message: 'claimerItemId is required.' });
+        }
 
         const claimerItem = await Item.findById(claimerItemId);
         if (!claimerItem || claimerItem.user.toString() !== req.user) {
             return res.status(400).json({ message: 'Invalid claim report or unauthorized.' });
         }
 
-        // Claimer must have a lost item, not a found item
-        if (claimerItem.type !== 'lost') {
-            return res.status(400).json({ message: 'You can only claim found items with your lost item reports.' });
+        // The claimerItem type must be opposite to the item being claimed
+        // - If claiming a FOUND item → claimer must have a LOST report
+        // - If notifying about a LOST item → claimer must have a FOUND report
+        if (item.type === 'found' && claimerItem.type !== 'lost') {
+            return res.status(400).json({ message: 'To claim a found item, you must link your lost item report.' });
+        }
+        if (item.type === 'lost' && claimerItem.type !== 'found') {
+            return res.status(400).json({ message: 'To notify a lost item owner, you must link your found item report.' });
         }
 
         const alreadyClaimed = item.claims.find(c => c.user.toString() === req.user);
@@ -167,7 +238,9 @@ router.post('/:id/claim', auth, async (req, res) => {
     }
 });
 
-// Verify security question
+// ─────────────────────────────────────────────
+// POST /:id/verify — Verify ownership answers (loser answering finder's questions)
+// ─────────────────────────────────────────────
 router.post('/:id/verify', auth, async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
@@ -200,18 +273,20 @@ router.post('/:id/verify', auth, async (req, res) => {
             item.status = 'matched';
             await item.save();
 
+            // Also mark the claimer's item as matched
             if (claim.claimerItemId) {
-                const claimerReport = await Item.findById(claim.claimerItemId);
-                if (claimerReport) {
-                    const finder = await User.findById(claimerReport.user);
-                    if (finder) {
-                        finder.reputationScore = (finder.reputationScore || 0) + 10;
-                        await finder.save();
-                    }
-                }
+                await Item.findByIdAndUpdate(claim.claimerItemId, { status: 'matched' });
             }
 
-            return res.json({ message: 'Verification successful!', success: true });
+            // Award reputation to the finder
+            const finderItem = await Item.findById(item._id).populate('user');
+            if (finderItem?.user) {
+                await User.findByIdAndUpdate(finderItem.user._id, {
+                    $inc: { reputationScore: 10 }
+                });
+            }
+
+            return res.json({ message: 'Verification successful! Item marked as matched.', success: true });
         }
 
         res.json({ message: 'Incorrect answers. Please try again.', success: false });
@@ -220,13 +295,14 @@ router.post('/:id/verify', auth, async (req, res) => {
     }
 });
 
-// Delete item
+// ─────────────────────────────────────────────
+// DELETE /:id — Delete own item
+// ─────────────────────────────────────────────
 router.delete('/:id', auth, async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: 'Item not found' });
 
-        // Check if user is the owner of the item
         if (item.user.toString() !== req.user) {
             return res.status(403).json({ message: 'Not authorized to delete this item' });
         }

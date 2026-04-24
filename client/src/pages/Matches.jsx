@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, AlertCircle, MapPin, Calendar, ArrowRight, Activity, Star } from 'lucide-react';
+import { CheckCircle, AlertCircle, MapPin, Calendar, ArrowRight, Activity, Star, Hand, Search } from 'lucide-react';
 import axios from 'axios';
 
 const MatchCard = ({ match, newItem }) => {
@@ -14,23 +14,27 @@ const MatchCard = ({ match, newItem }) => {
     const [verifying, setVerifying] = useState(false);
     const [error, setError] = useState('');
 
-    const handleClaim = async () => {
-        if (item.type === 'found' && item.verificationQuestions?.length > 0) {
-            setShowVerify(true);
-            return;
-        }
+    const token = localStorage.getItem('token');
+    const headers = { 'x-auth-token': token };
 
+    // LOSER claiming a FOUND item: claimerItemId = their lost item (newItem)
+    const handleClaim = async () => {
         setClaiming(true);
+        setError('');
         try {
             await axios.post(`http://localhost:5000/api/items/${item._id}/claim`, {
                 claimerItemId: newItem._id
-            });
-            setClaimed(true);
+            }, { headers });
+
+            // If the found item has verification questions, show them
+            if (item.type === 'found' && item.verificationQuestions?.length > 0) {
+                setShowVerify(true);
+            } else {
+                setClaimed(true);
+            }
         } catch (err) {
-            console.error(err);
-        } finally {
-            setClaiming(false);
-        }
+            setError(err.response?.data?.message || 'Claim failed');
+        } finally { setClaiming(false); }
     };
 
     const handleVerify = async (e) => {
@@ -38,71 +42,57 @@ const MatchCard = ({ match, newItem }) => {
         setVerifying(true);
         setError('');
         try {
-            const res = await axios.post(`http://localhost:5000/api/items/${item._id}/verify`, { answers });
+            const res = await axios.post(`http://localhost:5000/api/items/${item._id}/verify`,
+                { answers }, { headers });
             if (res.data.success) {
                 setClaimed(true);
                 setShowVerify(false);
             } else {
                 setError(res.data.message);
             }
-        } catch (err) {
-            setError('Verification failed. Please try again.');
-        } finally {
-            setVerifying(false);
-        }
+        } catch { setError('Verification failed. Please try again.'); }
+        finally { setVerifying(false); }
     };
 
     return (
         <>
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                 className={`glass-card overflow-hidden h-full flex flex-col ${isHighMatch ? 'border-green-500/30 ring-1 ring-green-500/20' : ''}`}
             >
                 {isHighMatch && (
                     <div className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest text-center flex items-center justify-center space-x-1">
-                        <Star size={10} />
-                        <span>High Confidence Match</span>
+                        <Star size={10} /><span>High Confidence Match</span>
                     </div>
                 )}
 
-                {/* Image */}
                 <div className="h-40 relative overflow-hidden bg-white/5">
-                    {item.images?.[0] ? (
-                        <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-5xl">
-                            {item.category === 'Electronics' ? '🎧' :
-                             item.category === 'ID Cards' ? '🪪' :
-                             item.category === 'Wallets & Purses' ? '👜' :
-                             item.category === 'Water Bottles' ? '💧' :
-                             item.category === 'Books & Stationery' ? '📚' :
-                             item.category === 'Keys' ? '🔑' : '📦'}
-                        </div>
-                    )}
+                    {item.images?.[0]
+                        ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center text-5xl">
+                            {item.category === 'Electronics' ? '🎧' : item.category === 'ID Cards' ? '🪪' :
+                             item.category === 'Wallets & Purses' ? '👜' : item.category === 'Water Bottles' ? '💧' :
+                             item.category === 'Books & Stationery' ? '📚' : item.category === 'Keys' ? '🔑' : '📦'}
+                          </div>}
                     <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                         item.type === 'found' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
-                    }`}>
-                        {item.type} Item
-                    </div>
+                    }`}>{item.type} Item</div>
                     <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-black ${
                         isHighMatch ? 'bg-green-500 text-white' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                    }`}>
-                        {Math.round(score)}% match
-                    </div>
+                    }`}>{Math.round(score)}% match</div>
                 </div>
 
                 <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-lg font-black mb-2 tracking-tight">{item.title}</h3>
                     <p className="text-lavender/50 text-xs mb-4 leading-relaxed line-clamp-2">{item.description}</p>
-
                     <div className="flex gap-4 text-[10px] text-lavender/40 font-bold uppercase tracking-widest mb-5">
                         <span className="flex items-center"><MapPin size={11} className="mr-1 text-electric-blue" />{item.location}</span>
                         <span className="flex items-center"><Calendar size={11} className="mr-1 text-electric-blue" />{new Date(item.date).toLocaleDateString()}</span>
                     </div>
+                    {item.user?.name && (
+                        <p className="text-[10px] text-lavender/30 mb-4">Reported by <span className="font-bold text-lavender/50">{item.user.name}</span></p>
+                    )}
 
                     <div className="mt-auto">
-                        {/* AI Explanation */}
                         <div className="bg-white/[0.03] rounded-xl p-3 mb-5 text-[10px] text-lavender/40 space-y-1">
                             <div className="font-black text-lavender/60 uppercase tracking-widest mb-2">Why AI matched this:</div>
                             <div>📝 Text similarity: <span className="text-white">{match.aiExplanation?.descriptionSimilarity ?? Math.round(score * 0.4)}%</span></div>
@@ -110,27 +100,24 @@ const MatchCard = ({ match, newItem }) => {
                             <div>🗺️ Location match: <span className="text-white">{match.aiExplanation?.locationSimilarity ?? Math.round(score * 0.2)}%</span></div>
                         </div>
 
+                        {error && <p className="text-red-400 text-[10px] font-bold bg-red-400/10 p-2 rounded-lg border border-red-400/20 text-center mb-3">{error}</p>}
+
                         {claimed ? (
                             <div className="w-full py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center space-x-2">
-                                <CheckCircle size={14} />
-                                <span>Verification Successful! Check Activity</span>
+                                <CheckCircle size={14} /><span>Verification Successful! Item Matched ✓</span>
                             </div>
-                        ) : newItem.type === 'lost' ? (
-                            <button
-                                onClick={handleClaim}
-                                disabled={claiming}
-                                className="w-full btn-primary py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center space-x-2 group"
-                            >
+                        ) : newItem.type === 'lost' && item.type === 'found' ? (
+                            <button onClick={handleClaim} disabled={claiming}
+                                className="w-full btn-primary py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center space-x-2 group">
                                 <CheckCircle size={14} />
-                                <span>{claiming ? 'Submitting...' : item.type === 'found' ? 'Authenticate & Claim' : 'Yes, this is mine!'}</span>
+                                <span>{claiming ? 'Submitting...' : 'Authenticate & Claim This'}</span>
                                 <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                             </button>
-                        ) : (
+                        ) : newItem.type === 'found' && item.type === 'lost' ? (
                             <div className="w-full py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center space-x-2">
-                                <CheckCircle size={14} />
-                                <span>Potential Owner Notified</span>
+                                <CheckCircle size={14} /><span>Owner has been notified</span>
                             </div>
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </motion.div>
@@ -138,35 +125,23 @@ const MatchCard = ({ match, newItem }) => {
             {/* Verification Modal */}
             {showVerify && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-indigo-950/80 backdrop-blur-md">
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="glass-card w-full max-w-md p-8 relative"
-                    >
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                        className="glass-card w-full max-w-md p-8 relative">
                         <h2 className="text-2xl font-black mb-2 tracking-tight italic">Ownership Challenge</h2>
-                        <p className="text-lavender/40 text-xs mb-8 leading-relaxed">The finder set security questions to ensure only the true owner can claim this item.</p>
-                        
+                        <p className="text-lavender/40 text-xs mb-8 leading-relaxed">
+                            The finder set security questions to verify you are the true owner of this item.
+                        </p>
                         <form onSubmit={handleVerify} className="space-y-6">
                             {item.verificationQuestions.map((q, i) => (
                                 <div key={i} className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-lavender/60">{q.question}</label>
-                                    <input 
-                                        type="text" 
-                                        className="input-field py-3 text-sm" 
-                                        placeholder="Your answer..."
+                                    <input type="text" className="input-field py-3 text-sm" placeholder="Your answer..."
                                         value={answers[i]}
-                                        onChange={(e) => {
-                                            const newAns = [...answers];
-                                            newAns[i] = e.target.value;
-                                            setAnswers(newAns);
-                                        }}
-                                        required
-                                    />
+                                        onChange={(e) => { const a = [...answers]; a[i] = e.target.value; setAnswers(a); }}
+                                        required />
                                 </div>
                             ))}
-                            
-                            {error && <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest bg-red-400/10 p-3 rounded-lg border border-red-400/20 text-center">{error}</p>}
-                            
+                            {error && <p className="text-red-400 text-[10px] font-bold bg-red-400/10 p-3 rounded-lg border border-red-400/20 text-center">{error}</p>}
                             <div className="flex gap-3 pt-4">
                                 <button type="button" onClick={() => setShowVerify(false)} className="btn-secondary flex-1 py-3 text-[10px] font-black uppercase tracking-widest">Cancel</button>
                                 <button type="submit" disabled={verifying} className="btn-primary flex-[2] py-3 text-[10px] font-black uppercase tracking-widest">
@@ -184,33 +159,46 @@ const MatchCard = ({ match, newItem }) => {
 const Matches = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [context, setContext] = useState({ newItem: null, matches: [] });
+    const [context, setContext] = useState({ newItem: null, matches: [], mode: 'loser' });
+    const [liveMatches, setLiveMatches] = useState(null);
+    const [loadingMatches, setLoadingMatches] = useState(false);
 
     useEffect(() => {
         if (location.state?.newItem) {
             const saved = {
                 newItem: location.state.newItem,
-                matches: location.state.matches || []
+                matches: location.state.matches || [],
+                mode: location.state.mode || (location.state.newItem.type === 'lost' ? 'loser' : 'finder')
             };
             setContext(saved);
-            try {
-                sessionStorage.setItem('matches-context', JSON.stringify(saved));
-            } catch (err) {
-                console.warn('Unable to persist matches context', err);
-            }
+            try { sessionStorage.setItem('matches-context', JSON.stringify(saved)); } catch {}
         } else {
             try {
                 const stored = sessionStorage.getItem('matches-context');
-                if (stored) {
-                    setContext(JSON.parse(stored));
-                }
-            } catch (err) {
-                console.warn('Unable to restore matches context', err);
-            }
+                if (stored) setContext(JSON.parse(stored));
+            } catch {}
         }
     }, [location.state]);
 
-    const { newItem, matches } = context;
+    // Fetch live matches from server when we have an item
+    useEffect(() => {
+        const fetchMatches = async () => {
+            if (!context.newItem?._id) return;
+            setLoadingMatches(true);
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get(`http://localhost:5000/api/items/${context.newItem._id}/matches`, {
+                    headers: { 'x-auth-token': token }
+                });
+                setLiveMatches(res.data);
+            } catch (err) { console.error('Failed to fetch live matches:', err); }
+            finally { setLoadingMatches(false); }
+        };
+        fetchMatches();
+    }, [context.newItem?._id]);
+
+    const { newItem, mode } = context;
+    const displayMatches = liveMatches || context.matches || [];
 
     if (!newItem) {
         return (
@@ -228,23 +216,37 @@ const Matches = () => {
         );
     }
 
+    const isLoser = mode === 'loser' || newItem.type === 'lost';
+    const oppositeLabel = isLoser ? 'found' : 'lost';
+
     return (
         <div className="pt-24 px-6 max-w-6xl mx-auto pb-12">
             <header className="mb-12 text-center">
-                <div className="inline-flex items-center space-x-2 bg-electric-blue/10 text-electric-blue px-4 py-2 rounded-full mb-6">
-                    <CheckCircle size={18} />
-                    <span className="text-sm font-bold">Report Submitted Successfully</span>
+                <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full mb-6 ${
+                    isLoser ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'
+                }`}>
+                    {isLoser ? <Search size={18} /> : <Hand size={18} />}
+                    <span className="text-sm font-bold">{isLoser ? 'Your Lost Item Report' : 'Your Found Item Report'}</span>
                 </div>
                 <h1 className="text-4xl font-black mb-4 tracking-tight">AI Match Results</h1>
                 <p className="text-lavender/60">
-                    Our algorithm found <span className="text-white font-bold">{matches.length}</span> potential{' '}
-                    {newItem.type === 'lost' ? 'found' : 'lost'} item matches for "{newItem.title}".
+                    {loadingMatches ? 'Scanning for matches...' : (
+                        <>Our algorithm found <span className="text-white font-bold">{displayMatches.length}</span> potential {oppositeLabel} item matches for "{newItem.title}".</>
+                    )}
                 </p>
+                {isLoser && displayMatches.length > 0 && (
+                    <p className="text-xs text-electric-blue/80 mt-3">Click "Authenticate & Claim" on a found item to answer the finder's verification questions and prove ownership.</p>
+                )}
             </header>
 
-            {matches.length > 0 ? (
+            {loadingMatches ? (
+                <div className="text-center py-16 text-lavender/40">
+                    <div className="w-8 h-8 border-2 border-electric-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-sm">AI is scanning {oppositeLabel} items...</p>
+                </div>
+            ) : displayMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {matches.map((match, i) => (
+                    {displayMatches.map((match, i) => (
                         <MatchCard key={i} match={match} newItem={newItem} />
                     ))}
                 </div>
@@ -253,17 +255,13 @@ const Matches = () => {
                     <AlertCircle size={48} className="mx-auto mb-4 text-lavender/20" />
                     <h3 className="text-xl font-bold mb-2">No Matches Found Yet</h3>
                     <p className="text-lavender/50 max-w-md mx-auto mb-8 text-sm">
-                        Don't worry! Our AI keeps scanning. As soon as a matching item is reported, you'll see it here.
-                        Check the Activity Feed for all currently reported items.
+                        Don't worry! Our AI keeps scanning. As soon as a matching {oppositeLabel} item is reported, you'll see it here.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Link to="/activity" className="btn-primary px-8 py-3 flex items-center justify-center space-x-2 text-xs font-black uppercase tracking-widest">
-                            <Activity size={14} />
-                            <span>View Activity Feed</span>
+                            <Activity size={14} /><span>View Activity Feed</span>
                         </Link>
-                        <Link to="/dashboard" className="btn-secondary px-8 py-3 text-xs font-black uppercase tracking-widest">
-                            Back to Dashboard
-                        </Link>
+                        <Link to="/dashboard" className="btn-secondary px-8 py-3 text-xs font-black uppercase tracking-widest">Back to Dashboard</Link>
                     </div>
                 </div>
             )}
