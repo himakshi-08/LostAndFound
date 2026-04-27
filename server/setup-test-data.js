@@ -14,67 +14,99 @@ const run = async () => {
         await User.deleteMany({});
         console.log('✅ Cleared existing database (Items & Users)');
 
-        // Create Users
-        const finderUser = new User({
-            name: 'Finder',
-            email: 'finder@srmap.edu.in',
-            password: 'finder@1',
-            studentId: 'AP2310000001',
-            department: 'CSE',
-            year: '3'
-        });
-        await finderUser.save();
+        const userNames = ['sofia', 'alex', 'rahul', 'priya', 'david', 'aisha'];
+        const users = [];
 
-        const loserUser = new User({
-            name: 'Loser',
-            email: 'loser@srmap.edu.in',
-            password: 'loser@1',
-            studentId: 'AP2310000002',
-            department: 'ECE',
-            year: '3'
-        });
-        await loserUser.save();
+        // Create Users
+        for (let i = 0; i < userNames.length; i++) {
+            const name = userNames[i];
+            const user = new User({
+                name: name.charAt(0).toUpperCase() + name.slice(1),
+                email: `${name}@srmap.edu.in`,
+                password: `${name}@1`,
+                studentId: `AP231000001${i}`,
+                department: ['CSE', 'ECE', 'MECH', 'EEE'][i % 4],
+                year: '3'
+            });
+            await user.save();
+            users.push(user);
+        }
 
         console.log('\n✅ Created test users:');
-        console.log('1. Email: finder@srmap.edu.in | Password: finder@1');
-        console.log('2. Email: loser@srmap.edu.in  | Password: loser@1');
+        users.forEach(u => console.log(`- Email: ${u.email} | Password: ${u.email.split('@')[0]}@1`));
 
-        // Create some items to start with
-        const lostItem = new Item({
-            title: 'Mixer',
-            type: 'lost',
-            category: 'Electronics',
-            description: 'A mixer with butterfly company logo. Lost it around lab.',
-            location: 'Lab CS-301',
-            date: new Date(),
-            color: 'White',
-            status: 'active',
-            user: loserUser._id
-        });
-        await lostItem.save();
+        // Create Lost Items
+        const lostItemsData = [
+            {
+                title: 'Apple AirPods Pro',
+                type: 'lost',
+                category: 'Electronics',
+                description: 'Lost my white Apple AirPods Pro. The case has a small scratch on the back.',
+                location: 'Library 2nd Floor',
+                color: 'White',
+                images: ['https://images.unsplash.com/photo-1606220588913-b3aecb4b2c15?q=80&w=800&auto=format&fit=crop'],
+            },
+            {
+                title: 'Black Leather Wallet',
+                type: 'lost',
+                category: 'Wallets & Purses',
+                description: 'A black leather wallet containing some cash, student ID, and a debit card.',
+                location: 'Main Canteen',
+                color: 'Black',
+                images: ['https://images.unsplash.com/photo-1627123424574-724758594e93?q=80&w=800&auto=format&fit=crop'],
+            },
+            {
+                title: 'Milton Water Bottle',
+                type: 'lost',
+                category: 'Water Bottles',
+                description: 'Blue Milton water bottle, 1 litre capacity. Left it near the basketball court.',
+                location: 'Basketball Court',
+                color: 'Blue',
+                images: ['https://images.unsplash.com/photo-1602143407151-7111542de6e8?q=80&w=800&auto=format&fit=crop'],
+            },
+            {
+                title: 'Data Structures Textbook',
+                type: 'lost',
+                category: 'Books & Stationery',
+                description: 'Data Structures and Algorithms in Java by Robert Lafore. Hardcover edition.',
+                location: 'Lab CS-102',
+                color: 'Blue',
+                images: ['https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=800&auto=format&fit=crop'],
+            },
+            {
+                title: 'Casio Scientific Calculator',
+                type: 'lost',
+                category: 'Electronics',
+                description: 'Grey Casio fx-991EX Classwiz scientific calculator. Has my initials written on the back with a marker.',
+                location: 'Block A, Room 305',
+                color: 'Grey',
+                images: ['https://images.unsplash.com/photo-1611078728518-124b172a39a0?q=80&w=800&auto=format&fit=crop'],
+            },
+            {
+                title: 'Fastrack Watch',
+                type: 'lost',
+                category: 'Others',
+                description: 'Silver Fastrack analog watch with a black dial. Dropped it somewhere in the gym.',
+                location: 'Gymnasium',
+                color: 'Silver',
+                images: ['https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=800&auto=format&fit=crop'],
+            }
+        ];
 
-        const foundItem = new Item({
-            title: 'Mixer (White)',
-            type: 'found',
-            category: 'Electronics',
-            description: 'Found a white mixer with butterfly logo.',
-            location: 'Lab CS-301',
-            date: new Date(),
-            color: 'White',
-            status: 'active',
-            user: finderUser._id,
-            verificationQuestions: [{
-                question: 'What is written on the mixer?',
-                answer: 'butterfly company'
-            }]
-        });
-        await foundItem.save();
-
-        console.log('\n✅ Created test items:');
-        console.log('- [LOST] "Mixer" by Loser');
-        console.log('- [FOUND] "Mixer (White)" by Finder (with verification question: "What is written on the mixer?", answer: "butterfly company")');
+        console.log('\n✅ Created test LOST items:');
+        for (let i = 0; i < lostItemsData.length; i++) {
+            const itemData = lostItemsData[i];
+            const item = new Item({
+                ...itemData,
+                date: new Date(),
+                status: 'active',
+                user: users[i]._id // assign each item to a different user
+            });
+            await item.save();
+            console.log(`- [LOST] "${item.title}" reported by ${users[i].name}`);
+        }
         
-        console.log('\n✅ Test data setup complete. You can now login with either account to test.');
+        console.log('\n✅ Test data setup complete. You can now login with any account, or create your own, to test finding these items.');
 
         process.exit(0);
     } catch (err) {
