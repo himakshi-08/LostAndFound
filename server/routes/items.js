@@ -174,6 +174,8 @@ router.get('/:id/matches', auth, async (req, res) => {
         if (!item) return res.status(404).json({ message: 'Item not found' });
 
         const oppositeType = item.type === 'lost' ? 'found' : 'lost';
+
+        // Find active potential matches
         const potentialMatches = await Item.find({
             type: oppositeType,
             status: 'active',
@@ -181,7 +183,48 @@ router.get('/:id/matches', auth, async (req, res) => {
         }).populate('user', 'name email');
 
         const matches = findMatches(item, potentialMatches);
-        res.json(matches);
+
+        // Also find already-matched items (verified claims) for this item
+        const alreadyMatchedItems = [];
+        if (item.claims && item.claims.length > 0) {
+            for (const claim of item.claims) {
+                if (claim.status === 'verified' && claim.claimerItemId) {
+                    const matchedItem = await Item.findById(claim.claimerItemId).populate('user', 'name email');
+                    if (matchedItem) {
+                        alreadyMatchedItems.push({
+                            item: matchedItem,
+                            score: 100,
+                            alreadyMatched: true,
+                            aiExplanation: { descriptionSimilarity: 100, fuzzyMatch: 100, locationSimilarity: 100, timeRelevance: 100 }
+                        });
+                    }
+                }
+            }
+        }
+
+        // Also check if the item itself is referenced in another item's verified claims
+        if (item.status === 'matched') {
+            const parentItems = await Item.find({
+                type: oppositeType,
+                status: 'matched',
+                'claims.claimerItemId': item._id,
+                'claims.status': 'verified'
+            }).populate('user', 'name email');
+
+            for (const parentItem of parentItems) {
+                const alreadyIncluded = alreadyMatchedItems.some(m => m.item._id.toString() === parentItem._id.toString());
+                if (!alreadyIncluded) {
+                    alreadyMatchedItems.push({
+                        item: parentItem,
+                        score: 100,
+                        alreadyMatched: true,
+                        aiExplanation: { descriptionSimilarity: 100, fuzzyMatch: 100, locationSimilarity: 100, timeRelevance: 100 }
+                    });
+                }
+            }
+        }
+
+        res.json([...alreadyMatchedItems, ...matches]);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -262,8 +305,28 @@ router.post('/:id/verify', auth, async (req, res) => {
         const answers = req.body.answers.map(a => (a || '').toString().toLowerCase().trim());
         let allCorrect = item.verificationQuestions.length === answers.length;
 
+        // Fuzzy answer matching: case-insensitive, partial/keyword match
+        const fuzzyAnswerMatch = (userAnswer, correctAnswer) => {
+            if (!userAnswer || !correctAnswer) return false;
+            const ua = userAnswer.toLowerCase().trim();
+            const ca = correctAnswer.toLowerCase().trim();
+            // Exact match
+            if (ua === ca) return true;
+            // One contains the other (e.g. 'butterfly' matches 'butterfly company')
+            if (ca.includes(ua) || ua.includes(ca)) return true;
+            // Keyword overlap: check if significant words from user's answer appear in correct answer
+            const uaWords = ua.split(/\s+/).filter(w => w.length > 1);
+            const caWords = ca.split(/\s+/).filter(w => w.length > 1);
+            if (uaWords.length > 0 && caWords.length > 0) {
+                const matchedWords = uaWords.filter(uw => caWords.some(cw => cw === uw || cw.includes(uw) || uw.includes(cw)));
+                // At least one significant keyword matches
+                if (matchedWords.length > 0) return true;
+            }
+            return false;
+        };
+
         item.verificationQuestions.forEach((q, i) => {
-            if (!answers[i] || answers[i] !== (q.answer || '').toLowerCase().trim()) {
+            if (!answers[i] || !fuzzyAnswerMatch(answers[i], (q.answer || ''))) {
                 allCorrect = false;
             }
         });

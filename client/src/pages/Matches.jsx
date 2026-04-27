@@ -57,9 +57,13 @@ const MatchCard = ({ match, newItem }) => {
     return (
         <>
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className={`glass-card overflow-hidden h-full flex flex-col ${isHighMatch ? 'border-green-500/30 ring-1 ring-green-500/20' : ''}`}
+                className={`glass-card overflow-hidden h-full flex flex-col ${match.alreadyMatched ? 'border-green-500/30 ring-2 ring-green-500/30' : isHighMatch ? 'border-green-500/30 ring-1 ring-green-500/20' : ''}`}
             >
-                {isHighMatch && (
+                {match.alreadyMatched ? (
+                    <div className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest text-center flex items-center justify-center space-x-1">
+                        <CheckCircle size={10} /><span>✓ Verified Match — Item Claimed Successfully</span>
+                    </div>
+                ) : isHighMatch && (
                     <div className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest text-center flex items-center justify-center space-x-1">
                         <Star size={10} /><span>High Confidence Match</span>
                     </div>
@@ -77,8 +81,8 @@ const MatchCard = ({ match, newItem }) => {
                         item.type === 'found' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
                     }`}>{item.type} Item</div>
                     <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-black ${
-                        isHighMatch ? 'bg-green-500 text-white' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                    }`}>{Math.round(score)}% match</div>
+                        match.alreadyMatched ? 'bg-green-500 text-white' : isHighMatch ? 'bg-green-500 text-white' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    }`}>{match.alreadyMatched ? '✓ Matched' : `${Math.round(score)}% match`}</div>
                 </div>
 
                 <div className="p-6 flex flex-col flex-1">
@@ -93,16 +97,22 @@ const MatchCard = ({ match, newItem }) => {
                     )}
 
                     <div className="mt-auto">
-                        <div className="bg-white/[0.03] rounded-xl p-3 mb-5 text-[10px] text-lavender/40 space-y-1">
-                            <div className="font-black text-lavender/60 uppercase tracking-widest mb-2">Why AI matched this:</div>
-                            <div>📝 Text similarity: <span className="text-white">{match.aiExplanation?.descriptionSimilarity ?? Math.round(score * 0.4)}%</span></div>
-                            <div>🔤 Title fuzzy match: <span className="text-white">{match.aiExplanation?.fuzzyMatch ?? Math.round(score * 0.2)}%</span></div>
-                            <div>🗺️ Location match: <span className="text-white">{match.aiExplanation?.locationSimilarity ?? Math.round(score * 0.2)}%</span></div>
-                        </div>
+                        {!match.alreadyMatched && (
+                            <div className="bg-white/[0.03] rounded-xl p-3 mb-5 text-[10px] text-lavender/40 space-y-1">
+                                <div className="font-black text-lavender/60 uppercase tracking-widest mb-2">Why AI matched this:</div>
+                                <div>📝 Text similarity: <span className="text-white">{match.aiExplanation?.descriptionSimilarity ?? Math.round(score * 0.4)}%</span></div>
+                                <div>🔤 Title fuzzy match: <span className="text-white">{match.aiExplanation?.fuzzyMatch ?? Math.round(score * 0.2)}%</span></div>
+                                <div>🗺️ Location match: <span className="text-white">{match.aiExplanation?.locationSimilarity ?? Math.round(score * 0.2)}%</span></div>
+                            </div>
+                        )}
 
                         {error && <p className="text-red-400 text-[10px] font-bold bg-red-400/10 p-2 rounded-lg border border-red-400/20 text-center mb-3">{error}</p>}
 
-                        {claimed ? (
+                        {match.alreadyMatched ? (
+                            <div className="w-full py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center space-x-2">
+                                <CheckCircle size={14} /><span>Item Successfully Claimed & Verified ✓</span>
+                            </div>
+                        ) : claimed ? (
                             <div className="w-full py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center space-x-2">
                                 <CheckCircle size={14} /><span>Verification Successful! Item Matched ✓</span>
                             </div>
@@ -230,11 +240,18 @@ const Matches = () => {
                 </div>
                 <h1 className="text-4xl font-black mb-4 tracking-tight">AI Match Results</h1>
                 <p className="text-lavender/60">
-                    {loadingMatches ? 'Scanning for matches...' : (
-                        <>Our algorithm found <span className="text-white font-bold">{displayMatches.length}</span> potential {oppositeLabel} item matches for "{newItem.title}".</>
-                    )}
+                    {loadingMatches ? 'Scanning for matches...' : (() => {
+                        const matchedCount = displayMatches.filter(m => m.alreadyMatched).length;
+                        const pendingCount = displayMatches.filter(m => !m.alreadyMatched).length;
+                        if (matchedCount > 0 && pendingCount === 0) {
+                            return <>Your item "<span className="text-white font-bold">{newItem.title}</span>" has been <span className="text-green-400 font-bold">successfully matched</span>!</>;
+                        } else if (matchedCount > 0 && pendingCount > 0) {
+                            return <>Your item is matched, plus <span className="text-white font-bold">{pendingCount}</span> more potential {oppositeLabel} matches for "{newItem.title}".</>;
+                        }
+                        return <>Our algorithm found <span className="text-white font-bold">{displayMatches.length}</span> potential {oppositeLabel} item matches for "{newItem.title}".</>;
+                    })()}
                 </p>
-                {isLoser && displayMatches.length > 0 && (
+                {isLoser && displayMatches.some(m => !m.alreadyMatched) && (
                     <p className="text-xs text-electric-blue/80 mt-3">Click "Authenticate & Claim" on a found item to answer the finder's verification questions and prove ownership.</p>
                 )}
             </header>

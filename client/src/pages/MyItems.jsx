@@ -161,18 +161,25 @@ const ItemCard = ({ item, onDelete, onViewDetails }) => {
                     </div>
                 )}
 
-                {/* For LOST items: link to matches */}
+                {/* For LOST items: link to matches or show matched status */}
                 {item.type === 'lost' && (
                     <div className="mt-auto pt-4 border-t border-white/5">
-                        <Link
-                            to="/matches"
-                            state={{ newItem: item, matches: [], mode: 'loser' }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-electric-blue hover:text-white transition-all group/link"
-                        >
-                            <span>View AI Matches</span>
-                            <ExternalLink size={13} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-                        </Link>
+                        {item.status === 'matched' ? (
+                            <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-green-400">
+                                <CheckCircle size={13} />
+                                <span>Item Recovered ✓</span>
+                            </div>
+                        ) : (
+                            <Link
+                                to="/matches"
+                                state={{ newItem: item, matches: [], mode: 'loser' }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-electric-blue hover:text-white transition-all group/link"
+                            >
+                                <span>View AI Matches</span>
+                                <ExternalLink size={13} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                            </Link>
+                        )}
                     </div>
                 )}
 
@@ -315,14 +322,20 @@ const ItemDetailModal = ({ item, isOpen, onClose }) => {
 
                         {/* View Matches for lost items */}
                         {item.type === 'lost' && (
-                            <Link
-                                to="/matches"
-                                state={{ newItem: item, matches: [], mode: 'loser' }}
-                                className="w-full block py-4 bg-gradient-to-r from-electric-blue to-blue-600 rounded-xl font-black uppercase tracking-widest text-white text-center hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
-                                onClick={onClose}
-                            >
-                                Scan for Found Matches →
-                            </Link>
+                            item.status === 'matched' ? (
+                                <div className="w-full py-4 bg-green-500/10 border border-green-500/20 rounded-xl font-black uppercase tracking-widest text-green-400 text-center flex items-center justify-center gap-2">
+                                    <CheckCircle size={18} /> Item Successfully Recovered ✓
+                                </div>
+                            ) : (
+                                <Link
+                                    to="/matches"
+                                    state={{ newItem: item, matches: [], mode: 'loser' }}
+                                    className="w-full block py-4 bg-gradient-to-r from-electric-blue to-blue-600 rounded-xl font-black uppercase tracking-widest text-white text-center hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
+                                    onClick={onClose}
+                                >
+                                    Scan for Found Matches →
+                                </Link>
+                            )
                         )}
                     </div>
                 </motion.div>
