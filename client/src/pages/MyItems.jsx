@@ -29,15 +29,24 @@ const ClaimsList = ({ item }) => {
         </div>
     );
 
+    const hasVerified = claims.some(c => c.status === 'verified');
+
     return (
         <div className="mt-3">
             <button
                 onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-                className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-widest py-2 px-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-all"
+                className={`w-full flex items-center justify-between text-[10px] font-black uppercase tracking-widest py-2 px-3 rounded-lg transition-all ${
+                    hasVerified 
+                        ? 'bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20' 
+                        : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20'
+                }`}
             >
                 <span className="flex items-center gap-2">
-                    <Shield size={12} />
-                    {claims.length} Pending Claim{claims.length > 1 ? 's' : ''}
+                    {hasVerified ? <CheckCircle size={12} /> : <Shield size={12} />}
+                    {hasVerified 
+                        ? `${claims.length} Verified Match${claims.length > 1 ? 'es' : ''}`
+                        : `${claims.length} Pending Claim${claims.length > 1 ? 's' : ''}`
+                    }
                 </span>
                 {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>

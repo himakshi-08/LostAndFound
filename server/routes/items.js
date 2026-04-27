@@ -82,7 +82,9 @@ router.get('/my-items', auth, async (req, res) => {
         if (req.query.type) {
             filter.type = req.query.type;
         }
-        const items = await Item.find(filter).sort({ createdAt: -1 });
+        const items = await Item.find(filter)
+            .sort({ createdAt: -1 })
+            .populate('claims.user', 'name email');
         res.json(items);
     } catch (err) {
         res.status(500).json({ message: err.message });
