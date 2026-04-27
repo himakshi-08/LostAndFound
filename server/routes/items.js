@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const Item = require('../models/Item');
 const User = require('../models/User');
 const { findMatches } = require('../utils/aiMatch');
+const { spawn } = require('child_process');
+const path = require('path');
 
 const sanitizeVerificationQuestions = (questions = []) => {
     return questions
@@ -37,6 +39,41 @@ router.post('/report', auth, async (req, res) => {
             if (itemData.verificationQuestions.length === 0) {
                 return res.status(400).json({ message: 'At least one verification question is required for found items to ensure secure claims.' });
             }
+        }
+
+        // Run Priority Agent
+        const itemDescription = `${itemData.title} ${itemData.description}`;
+        const scriptPath = path.join(__dirname, '../utils/priority_agent.py');
+        
+        try {
+            const agentResult = await new Promise((resolve, reject) => {
+                const pythonProcess = spawn('python', [scriptPath, itemDescription]);
+                let dataString = '';
+                
+                pythonProcess.stdout.on('data', (data) => {
+                    dataString += data.toString();
+                });
+                
+                pythonProcess.stderr.on('data', (data) => {
+                    console.error(`Priority Agent Error: ${data}`);
+                });
+                
+                pythonProcess.on('close', (code) => {
+                    try {
+                        const result = JSON.parse(dataString);
+                        resolve(result);
+                    } catch (e) {
+                        resolve({ urgencyLevel: 'Low', inferenceReason: 'Agent parsing failed.' });
+                    }
+                });
+            });
+            
+            if (agentResult.urgencyLevel) {
+                itemData.urgencyLevel = agentResult.urgencyLevel;
+                itemData.inferenceReason = agentResult.inferenceReason;
+            }
+        } catch (error) {
+            console.error('Failed to run priority agent:', error);
         }
 
         const newItem = new Item(itemData);

@@ -12,6 +12,8 @@ const ItemSchema = new mongoose.Schema({
     color: { type: String },
     images: [{ type: String }],
     status: { type: String, enum: ['active', 'matched', 'recovered', 'returned'], default: 'active' },
+    urgencyLevel: { type: String, enum: ['Low', 'High', 'Critical'], default: 'Low' },
+    inferenceReason: { type: String },
     verificationQuestions: [{
         question: String,
         answer: String
