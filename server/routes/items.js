@@ -91,6 +91,7 @@ router.post('/report', auth, async (req, res) => {
 
         res.status(201).json({ item: newItem, matches });
     } catch (err) {
+        console.error('REPORT ERROR:', err);
         res.status(500).json({ message: err.message });
     }
 });
