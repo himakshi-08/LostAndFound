@@ -178,8 +178,13 @@ const ItemCard = ({ item, onIFoundThis, onViewDetails, isOwner }) => {
                 {item.images?.length > 0
                     ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
                     : <span className="text-6xl">{emoji}</span>}
-                <div className="absolute top-3 left-3">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/20 text-red-400">🔴 Lost</span>
+                <div className="absolute top-3 left-3 flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/20 text-red-400 w-fit">🔴 Lost</span>
+                    {item.urgencyLevel && item.urgencyLevel !== 'Low' && (
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border w-fit ${item.urgencyLevel === 'Critical' ? 'border-red-500 text-red-400 bg-red-500/10' : 'border-orange-500 text-orange-400 bg-orange-500/10'}`}>
+                            {item.urgencyLevel === 'Critical' ? '🚨 Critical' : '⚠️ High Priority'}
+                        </span>
+                    )}
                 </div>
                 <div className="absolute top-3 right-3">
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${status.color} flex items-center`}>
@@ -247,6 +252,12 @@ const ItemDetailModal = ({ item, isOpen, onClose, onIFoundThis, isOwner }) => {
                         </div>
                         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                             <p className="text-lavender leading-relaxed">{item.description}</p>
+                            {item.urgencyLevel && item.urgencyLevel !== 'Low' && (
+                                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                    <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest mb-1">AI Priority Alert: {item.urgencyLevel}</h4>
+                                    <p className="text-sm text-red-200/80">{item.inferenceReason}</p>
+                                </div>
+                            )}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {[['Location', <MapPin size={15} className="mr-2 text-electric-blue shrink-0 mt-0.5" />, item.location],
