@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Trash2, ExternalLink, MapPin, Calendar, AlertCircle, ArrowRight, X, Tag, Shield, CheckCircle, Clock, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const getToken = () => localStorage.getItem('token');
+const getToken = () => sessionStorage.getItem('token');
 const authHeaders = () => ({ headers: { 'x-auth-token': getToken() } });
 
 const categoryEmoji = {

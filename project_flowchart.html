@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LostLink System Workflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: white;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 50px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 1200px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 50px;
+            letter-spacing: -1px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LostLink System Workflow</h1>
+        <div class="mermaid">
+            %%{
+              init: {
+                'theme': 'base',
+                'themeVariables': {
+                  'primaryColor': '#1e293b',
+                  'primaryTextColor': '#f8fafc',
+                  'primaryBorderColor': '#3b82f6',
+                  'lineColor': '#818cf8',
+                  'secondaryColor': '#0f172a',
+                  'tertiaryColor': '#0f172a',
+                  'nodeBorder': '#3b82f6',
+                  'mainBkg': '#1e293b',
+                  'nodeTextColor': '#f8fafc',
+                  'clusterBkg': '#0f172a',
+                  'clusterBorder': '#334155',
+                  'edgeLabelBackground':'#1e293b',
+                  'fontFamily': 'Inter, sans-serif',
+                  'fontSize': '16px'
+                },
+                'flowchart': {
+                    'curve': 'basis',
+                    'nodeSpacing': 50,
+                    'rankSpacing': 50
+                }
+              }
+            }%%
+            flowchart TD
+                A([User Authentication]) --> B{What did the user do?}
+                
+                B -->|Loses an Item| C[Submit Lost Report]
+                B -->|Finds an Item| D[Submit Found Report]
+                
+                D --> E[Set Custom Security Question]
+                
+                C --> F{{"⚡ AI Matching Engine ⚡"}}
+                D --> F
+                
+                F -->|Analyzes Text & Location| G{Confidence Score > 10%?}
+                
+                G -->|Yes| H[Match Displayed to Loser]
+                G -->|No| I[Keep Scanning in Background]
+                
+                H --> J[Loser Clicks 'Claim Item']
+                J --> K[Loser Answers Finder's Question]
+                
+                K --> L{Fuzzy Logic Verification}
+                
+                L -->|Answer Incorrect| M[Claim Status: Pending / Rejected]
+                L -->|Answer Correct| N([Item Status: Recovered! ✓])
+                
+                N --> O([Finder Awarded Reputation Points])
+                
+                style A fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff
+                style F fill:#7c3aed,stroke:#6d28d9,stroke-width:4px,color:#fff
+                style N fill:#059669,stroke:#047857,stroke-width:4px,color:#fff
+                style O fill:#d97706,stroke:#b45309,stroke-width:2px,color:#fff
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>

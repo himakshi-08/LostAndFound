@@ -25,7 +25,7 @@ const ItemMiniCard = ({ item, onViewDetails }) => (
     >
         <div className="relative h-48 overflow-hidden">
             <img
-                src={item.images?.[0] || 'https://images.unsplash.com/photo-1590370221379-33b6838a6a6d?w=800&q=80'}
+                src={item.images?.[0] || 'https://placehold.co/800x600/31343C/FFFFFF?text=Item'}
                 alt={item.title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
@@ -65,7 +65,7 @@ const Dashboard = () => {
         const fetchData = async () => {
             if (!user) return;
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 const config = { headers: { 'x-auth-token': token } };
 
                 // Fetch public lost items for dashboard feed + user's own items
@@ -83,7 +83,7 @@ const Dashboard = () => {
         const fetchNotifications = async () => {
             if (!user) return;
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 const config = { headers: { 'x-auth-token': token } };
                 const res = await axios.get('http://localhost:5000/api/items/notifications', config);
                 setNotifications(res.data.notifications || []);

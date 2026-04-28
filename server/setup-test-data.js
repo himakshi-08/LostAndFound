@@ -44,7 +44,7 @@ const run = async () => {
                 description: 'Lost my white Apple AirPods Pro. The case has a small scratch on the back.',
                 location: 'Library 2nd Floor',
                 color: 'White',
-                images: ['https://images.unsplash.com/photo-1606220588913-b3aecb4b2c15?q=80&w=800&auto=format&fit=crop'],
+                images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item'],
             },
             {
                 title: 'Black Leather Wallet',
@@ -53,7 +53,7 @@ const run = async () => {
                 description: 'A black leather wallet containing some cash, student ID, and a debit card.',
                 location: 'Main Canteen',
                 color: 'Black',
-                images: ['https://images.unsplash.com/photo-1627123424574-724758594e93?q=80&w=800&auto=format&fit=crop'],
+                images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item'],
             },
             {
                 title: 'Milton Water Bottle',
@@ -62,7 +62,7 @@ const run = async () => {
                 description: 'Blue Milton water bottle, 1 litre capacity. Left it near the basketball court.',
                 location: 'Basketball Court',
                 color: 'Blue',
-                images: ['https://images.unsplash.com/photo-1602143407151-7111542de6e8?q=80&w=800&auto=format&fit=crop'],
+                images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item'],
             },
             {
                 title: 'Data Structures Textbook',
@@ -71,7 +71,7 @@ const run = async () => {
                 description: 'Data Structures and Algorithms in Java by Robert Lafore. Hardcover edition.',
                 location: 'Lab CS-102',
                 color: 'Blue',
-                images: ['https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=800&auto=format&fit=crop'],
+                images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item'],
             },
             {
                 title: 'Casio Scientific Calculator',
@@ -80,7 +80,7 @@ const run = async () => {
                 description: 'Grey Casio fx-991EX Classwiz scientific calculator. Has my initials written on the back with a marker.',
                 location: 'Block A, Room 305',
                 color: 'Grey',
-                images: ['https://images.unsplash.com/photo-1611078728518-124b172a39a0?q=80&w=800&auto=format&fit=crop'],
+                images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item'],
             },
             {
                 title: 'Fastrack Watch',
@@ -89,7 +89,7 @@ const run = async () => {
                 description: 'Silver Fastrack analog watch with a black dial. Dropped it somewhere in the gym.',
                 location: 'Gymnasium',
                 color: 'Silver',
-                images: ['https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=800&auto=format&fit=crop'],
+                images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item'],
             }
         ];
 

@@ -13,7 +13,7 @@ const lostItems = [
         date: new Date('2026-03-15'),
         color: 'Black',
         status: 'active',
-        images: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80']
+        images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item']
     },
     {
         title: 'Blue SRM Student ID Card',
@@ -24,7 +24,7 @@ const lostItems = [
         date: new Date('2026-03-16'),
         color: 'Blue',
         status: 'active',
-        images: ['https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&q=80']
+        images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item']
     },
     {
         title: 'HP Notebook 15 Laptop Bag',
@@ -35,7 +35,7 @@ const lostItems = [
         date: new Date('2026-03-16'),
         color: 'Navy Blue',
         status: 'active',
-        images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80']
+        images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item']
     },
     {
         title: 'Stainless Steel Water Bottle',
@@ -46,7 +46,7 @@ const lostItems = [
         date: new Date('2026-03-17'),
         color: 'Silver',
         status: 'active',
-        images: ['https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80']
+        images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item']
     },
     {
         title: 'Engineering Mathematics Textbook',
@@ -57,7 +57,7 @@ const lostItems = [
         date: new Date('2026-03-17'),
         color: 'Red',
         status: 'active',
-        images: ['https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80']
+        images: ['https://placehold.co/800x600/31343C/FFFFFF?text=Item']
     }
 ];
 

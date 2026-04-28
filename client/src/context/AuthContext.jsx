@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
     // On app startup, validate any stored token against the server
     useEffect(() => {
         const validateSession = async () => {
-            const storedToken = localStorage.getItem('token');
+            const storedToken = sessionStorage.getItem('token');
             if (!storedToken) {
                 // No stored session — start fresh (logged out)
                 setLoading(false);
@@ -24,12 +24,12 @@ export const AuthProvider = ({ children }) => {
                 // Token is valid — restore the session
                 setToken(storedToken);
                 setUser(res.data);
-                localStorage.setItem('user', JSON.stringify(res.data));
+                sessionStorage.setItem('user', JSON.stringify(res.data));
             } catch (err) {
                 // Token is invalid / expired / server unreachable — clear stale session
                 console.warn('Stored session is invalid, logging out.');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('user');
                 delete axios.defaults.headers.common['x-auth-token'];
                 setToken(null);
                 setUser(null);
@@ -44,8 +44,8 @@ export const AuthProvider = ({ children }) => {
         const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
         setToken(res.data.token);
         setUser(res.data.user);
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+        sessionStorage.setItem('token', res.data.token);
+        sessionStorage.setItem('user', JSON.stringify(res.data.user));
         axios.defaults.headers.common['x-auth-token'] = res.data.token;
     };
 
@@ -53,23 +53,23 @@ export const AuthProvider = ({ children }) => {
         const res = await axios.post('http://localhost:5000/api/auth/signup', userData);
         setToken(res.data.token);
         setUser(res.data.user);
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+        sessionStorage.setItem('token', res.data.token);
+        sessionStorage.setItem('user', JSON.stringify(res.data.user));
         axios.defaults.headers.common['x-auth-token'] = res.data.token;
     };
 
     const updateProfile = async (profileData) => {
         const res = await axios.put('http://localhost:5000/api/auth/profile', profileData);
         setUser(res.data);
-        localStorage.setItem('user', JSON.stringify(res.data));
+        sessionStorage.setItem('user', JSON.stringify(res.data));
         return res.data;
     };
 
     const logout = () => {
         setToken(null);
         setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
         delete axios.defaults.headers.common['x-auth-token'];
     };
 

@@ -14,7 +14,7 @@ const MatchCard = ({ match, newItem }) => {
     const [verifying, setVerifying] = useState(false);
     const [error, setError] = useState('');
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'x-auth-token': token };
 
     // LOSER claiming a FOUND item: claimerItemId = their lost item (newItem)
@@ -196,7 +196,7 @@ const Matches = () => {
             if (!context.newItem?._id) return;
             setLoadingMatches(true);
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 const res = await axios.get(`http://localhost:5000/api/items/${context.newItem._id}/matches`, {
                     headers: { 'x-auth-token': token }
                 });

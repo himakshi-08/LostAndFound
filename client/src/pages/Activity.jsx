@@ -16,30 +16,11 @@ const categoryEmoji = {
     'Water Bottles': '💧', 'Others': '📦',
 };
 
-const levenshteinDistance = (a, b) => {
-    const matrix = Array.from({ length: b.length + 1 }, () => []);
-    for (let i = 0; i <= b.length; i += 1) matrix[i][0] = i;
-    for (let j = 0; j <= a.length; j += 1) matrix[0][j] = j;
-    for (let i = 1; i <= b.length; i += 1) {
-        for (let j = 1; j <= a.length; j += 1) {
-            matrix[i][j] = Math.min(
-                matrix[i - 1][j] + 1, matrix[i][j - 1] + 1,
-                matrix[i - 1][j - 1] + (a[j - 1] === b[i - 1] ? 0 : 1)
-            );
-        }
-    }
-    return matrix[b.length][a.length];
-};
-
 const fuzzyIncludes = (text, query) => {
     if (!query) return true;
     const nText = (text || '').toLowerCase();
     const nQuery = query.toLowerCase().trim();
-    if (!nQuery) return true;
-    if (nText.includes(nQuery)) return true;
-    const tokens = nText.split(/\W+/).filter(Boolean);
-    const maxDist = Math.max(1, Math.round(nQuery.length * 0.34));
-    return tokens.some(t => levenshteinDistance(t, nQuery) <= maxDist);
+    return nText.includes(nQuery);
 };
 
 /* ── "I Found This" Modal ─────────────────────────────────── */
@@ -57,7 +38,7 @@ const IFoundThisModal = ({ lostItem, isOpen, onClose }) => {
         setError('');
         const fetch = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 const res = await axios.get('http://localhost:5000/api/items/my-found-items', {
                     headers: { 'x-auth-token': token }
                 });
@@ -72,7 +53,7 @@ const IFoundThisModal = ({ lostItem, isOpen, onClose }) => {
         setSubmitting(foundItem._id);
         setError('');
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             await axios.post(`http://localhost:5000/api/items/${lostItem._id}/claim`, {
                 claimerItemId: foundItem._id
             }, { headers: { 'x-auth-token': token } });
@@ -242,7 +223,7 @@ const ItemDetailModal = ({ item, isOpen, onClose, onIFoundThis, isOwner }) => {
                         <button onClick={onClose} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"><X size={20} /></button>
                     </div>
                     <div className="relative h-64 overflow-hidden">
-                        <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1590370221379-33b6838a6a6d?w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
+                        <img src={item.images?.[0] || 'https://placehold.co/800x600/31343C/FFFFFF?text=Item'} alt={item.title} className="w-full h-full object-cover" />
                         <div className="absolute top-4 left-4 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md bg-red-500/30 text-red-200 border border-red-500/50">Lost Item</div>
                     </div>
                     <div className="p-8 space-y-6">
@@ -304,7 +285,7 @@ const Activity = () => {
     useEffect(() => {
         const fetchAll = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 const res = await axios.get('http://localhost:5000/api/items/public-lost', {
                     headers: { 'x-auth-token': token }
                 });

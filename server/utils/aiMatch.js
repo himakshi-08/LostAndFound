@@ -110,7 +110,7 @@ const findMatches = (newItem, existingItems) => {
     });
 
     return matches
-        .filter(match => match.score >= 10)
+        .filter(match => match.score >= 40)
         .sort((a, b) => b.score - a.score);
 };
 
